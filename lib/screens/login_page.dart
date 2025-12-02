@@ -88,6 +88,11 @@ class _LoginPageState extends State<LoginPage> {
 
         await Future.delayed(const Duration(milliseconds: 1500));
 
+        // Forzar recarga completa del estado
+        if (mounted) {
+          setState(() {});
+        }
+
         // El StreamBuilder en main.dart navegará automáticamente al HomePage
       } else {
         debugPrint('❌ UserCredential es null');

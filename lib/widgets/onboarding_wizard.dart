@@ -573,7 +573,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
               nombre,
               icon,
               color,
-              'income',
+              'fixed',
             ); // Cambia según el tipo
           },
         ),
@@ -717,7 +717,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
               nombre,
               icon,
               color,
-              'income',
+              'variable',
             ); // Cambia según el tipo
           },
         ),

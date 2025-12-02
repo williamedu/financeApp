@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class ViewFixedExpensesDialog extends StatelessWidget {
-  final Map<String, Map<String, double>> gastosFijos;
+  final Map<String, Map<String, dynamic>> gastosFijos;
 
   const ViewFixedExpensesDialog({super.key, required this.gastosFijos});
 
@@ -18,7 +18,12 @@ class ViewFixedExpensesDialog extends StatelessWidget {
   double calcularTotal(String tipo) {
     double total = 0;
     gastosFijos.forEach((key, value) {
-      total += value[tipo] ?? 0;
+      final valor = value[tipo];
+      if (valor is double) {
+        total += valor;
+      } else if (valor is int) {
+        total += valor.toDouble();
+      }
     });
     return total;
   }

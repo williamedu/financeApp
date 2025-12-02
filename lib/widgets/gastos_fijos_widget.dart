@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'view_fixed_expenses_dialog.dart';
 import 'add_fixed_expense_dialog.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 
 class GastosFijosWidget extends StatefulWidget {
   final Map<String, Map<String, dynamic>> gastosFijos;
@@ -13,12 +15,23 @@ class GastosFijosWidget extends StatefulWidget {
 }
 
 class _GastosFijosWidgetState extends State<GastosFijosWidget> {
-  late Map<String, Map<String, double>> gastosFijosLocales;
+  late Map<String, Map<String, dynamic>> gastosFijosLocales;
 
   @override
   void initState() {
     super.initState();
     gastosFijosLocales = Map.from(widget.gastosFijos);
+  }
+
+  @override
+  void didUpdateWidget(GastosFijosWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Actualizar datos locales cuando cambien los props
+    if (oldWidget.gastosFijos != widget.gastosFijos) {
+      setState(() {
+        gastosFijosLocales = Map.from(widget.gastosFijos);
+      });
+    }
   }
 
   String formatearMoneda(double valor) {
@@ -33,7 +46,12 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
   double calcularTotal(String tipo) {
     double total = 0;
     gastosFijosLocales.forEach((key, value) {
-      total += value[tipo] ?? 0;
+      final valor = value[tipo];
+      if (valor is double) {
+        total += valor;
+      } else if (valor is int) {
+        total += valor.toDouble();
+      }
     });
     return total;
   }
@@ -52,28 +70,48 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
       context: context,
       builder: (context) => AddFixedExpenseDialog(
         categoriasExistentes: gastosFijosLocales.keys.toList(),
-        onAdd: (nombre, presupuestado, actual) {
-          setState(() {
-            // Generar nombre único si ya existe
-            String nombreFinal = nombre;
-            int contador = 2;
-            while (gastosFijosLocales.containsKey(nombreFinal)) {
-              nombreFinal = '$nombre $contador';
-              contador++;
+        onAdd: (nombre, presupuestado, actual) async {
+          // Generar nombre único si ya existe
+          String nombreFinal = nombre;
+          int contador = 2;
+          while (gastosFijosLocales.containsKey(nombreFinal)) {
+            nombreFinal = '$nombre $contador';
+            contador++;
+          }
+
+          // Guardar en Firebase
+          final authService = AuthService();
+          final firestoreService = FirestoreService();
+          final user = authService.currentUser;
+
+          if (user != null) {
+            try {
+              await firestoreService.addGastoFijo(
+                uid: user.uid,
+                nombre: nombreFinal,
+                presupuestado: presupuestado,
+                actual: actual,
+              );
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Gasto fijo agregado exitosamente'),
+                    backgroundColor: Color(0xFFF59E0B),
+                  ),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error al guardar: $e'),
+                    backgroundColor: const Color(0xFFEF4444),
+                  ),
+                );
+              }
             }
-
-            gastosFijosLocales[nombreFinal] = {
-              'presupuestado': presupuestado,
-              'actual': actual,
-            };
-          });
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Gasto fijo agregado exitosamente'),
-              backgroundColor: Color(0xFFF59E0B),
-            ),
-          );
+          }
         },
       ),
     );

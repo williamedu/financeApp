@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'view_variable_expenses_dialog.dart';
 import 'add_variable_expense_dialog.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 
 class GastosVariablesWidget extends StatefulWidget {
   final Map<String, Map<String, dynamic>> gastosVariables;
@@ -13,12 +15,23 @@ class GastosVariablesWidget extends StatefulWidget {
 }
 
 class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
-  late Map<String, Map<String, double>> gastosVariablesLocales;
+  late Map<String, Map<String, dynamic>> gastosVariablesLocales;
 
   @override
   void initState() {
     super.initState();
     gastosVariablesLocales = Map.from(widget.gastosVariables);
+  }
+
+  @override
+  void didUpdateWidget(GastosVariablesWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Actualizar datos locales cuando cambien los props
+    if (oldWidget.gastosVariables != widget.gastosVariables) {
+      setState(() {
+        gastosVariablesLocales = Map.from(widget.gastosVariables);
+      });
+    }
   }
 
   String formatearMoneda(double valor) {
@@ -33,7 +46,12 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
   double calcularTotal(String tipo) {
     double total = 0;
     gastosVariablesLocales.forEach((key, value) {
-      total += value[tipo] ?? 0;
+      final valor = value[tipo];
+      if (valor is double) {
+        total += valor;
+      } else if (valor is int) {
+        total += valor.toDouble();
+      }
     });
     return total;
   }
@@ -55,28 +73,48 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
       builder: (context) {
         return AddVariableExpenseDialog(
           categoriasExistentes: gastosVariablesLocales.keys.toList(),
-          onAdd: (nombre, presupuestado, actual) {
-            setState(() {
-              // Generar nombre único si ya existe
-              String nombreFinal = nombre;
-              int contador = 2;
-              while (gastosVariablesLocales.containsKey(nombreFinal)) {
-                nombreFinal = '$nombre $contador';
-                contador++;
+          onAdd: (nombre, presupuestado, actual) async {
+            // Generar nombre único si ya existe
+            String nombreFinal = nombre;
+            int contador = 2;
+            while (gastosVariablesLocales.containsKey(nombreFinal)) {
+              nombreFinal = '$nombre $contador';
+              contador++;
+            }
+
+            // Guardar en Firebase
+            final authService = AuthService();
+            final firestoreService = FirestoreService();
+            final user = authService.currentUser;
+
+            if (user != null) {
+              try {
+                await firestoreService.addGastoVariable(
+                  uid: user.uid,
+                  nombre: nombreFinal,
+                  presupuestado: presupuestado,
+                  actual: actual,
+                );
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Gasto variable agregado exitosamente'),
+                      backgroundColor: Color(0xFF3B82F6),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error al guardar: $e'),
+                      backgroundColor: const Color(0xFFEF4444),
+                    ),
+                  );
+                }
               }
-
-              gastosVariablesLocales[nombreFinal] = {
-                'presupuestado': presupuestado,
-                'actual': actual,
-              };
-            });
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Gasto variable agregado exitosamente'),
-                backgroundColor: Color(0xFF3B82F6),
-              ),
-            );
+            }
           },
         );
       },

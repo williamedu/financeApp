@@ -41,16 +41,6 @@ class _HomePageState extends State<HomePage> {
   final AuthService _authService = AuthService();
   final FirestoreService _firestoreService = FirestoreService();
 
-  // Estado de carga
-  bool _isLoading = true;
-
-  // Datos que se cargarán desde Firebase
-  Map<String, Map<String, dynamic>> ingresos = {};
-  Map<String, Map<String, dynamic>> gastosFijos = {};
-  Map<String, Map<String, dynamic>> gastosVariables = {};
-  Map<String, Map<String, dynamic>> ahorros = {};
-  Map<String, Map<String, dynamic>> deudas = {};
-
   // TRANSACCIONES (por ahora hardcodeadas, las implementaremos después)
   final List<Map<String, dynamic>> transacciones = [
     {
@@ -103,47 +93,6 @@ class _HomePageState extends State<HomePage> {
     },
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _cargarDatosFirebase();
-  }
-
-  Future<void> _cargarDatosFirebase() async {
-    final user = _authService.currentUser;
-    if (user != null) {
-      try {
-        final datos = await _firestoreService.loadUserData(user.uid);
-        setState(() {
-          ingresos =
-              datos['ingresos'] as Map<String, Map<String, dynamic>>? ?? {};
-          gastosFijos =
-              datos['gastosFijos'] as Map<String, Map<String, dynamic>>? ?? {};
-          gastosVariables =
-              datos['gastosVariables'] as Map<String, Map<String, dynamic>>? ??
-              {};
-          ahorros = {}; // Por ahora vacío, lo implementaremos después
-          deudas = {}; // Por ahora vacío, lo implementaremos después
-          _isLoading = false;
-        });
-        debugPrint('✅ Datos cargados desde Firebase');
-        debugPrint('Ingresos: $ingresos');
-        debugPrint('Gastos Fijos: $gastosFijos');
-        debugPrint('Gastos Variables: $gastosVariables');
-      } catch (e) {
-        debugPrint('❌ Error cargando datos: $e');
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } else {
-      debugPrint('❌ No hay usuario logueado');
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
   // Función para cambiar mes
   void cambiarMes(int nuevoMes) {
     setState(() {
@@ -152,7 +101,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Función para calcular total de ingresos
-  double calcularTotalIngresos(String tipo) {
+  double calcularTotalIngresos(
+    Map<String, Map<String, dynamic>> ingresos,
+    String tipo,
+  ) {
     double total = 0;
     ingresos.forEach((key, value) {
       final valor = value[tipo];
@@ -166,7 +118,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Función para calcular total de gastos fijos
-  double calcularTotalGastosFijos(String tipo) {
+  double calcularTotalGastosFijos(
+    Map<String, Map<String, dynamic>> gastosFijos,
+    String tipo,
+  ) {
     double total = 0;
     gastosFijos.forEach((key, value) {
       final valor = value[tipo];
@@ -180,7 +135,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Función para calcular total de gastos variables
-  double calcularTotalGastosVariables(String tipo) {
+  double calcularTotalGastosVariables(
+    Map<String, Map<String, dynamic>> gastosVariables,
+    String tipo,
+  ) {
     double total = 0;
     gastosVariables.forEach((key, value) {
       final valor = value[tipo];
@@ -194,7 +152,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Función para calcular total de ahorros
-  double calcularTotalAhorros(String tipo) {
+  double calcularTotalAhorros(
+    Map<String, Map<String, dynamic>> ahorros,
+    String tipo,
+  ) {
     double total = 0;
     ahorros.forEach((key, value) {
       final valor = value[tipo];
@@ -208,7 +169,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Función para calcular total de deudas
-  double calcularTotalDeudas(String tipo) {
+  double calcularTotalDeudas(
+    Map<String, Map<String, dynamic>> deudas,
+    String tipo,
+  ) {
     double total = 0;
     deudas.forEach((key, value) {
       final valor = value[tipo];
@@ -233,141 +197,179 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Mostrar loading mientras carga los datos
-    if (_isLoading) {
+    final user = _authService.currentUser;
+
+    if (user == null) {
       return const Scaffold(
         backgroundColor: Color(0xFF0F172A),
         body: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+          child: Text(
+            'Error: Usuario no autenticado',
+            style: TextStyle(color: Colors.white),
           ),
         ),
       );
     }
 
-    double totalPresupuestado = calcularTotalIngresos('estimado');
-    double totalActual = calcularTotalIngresos('actual');
-    double totalAhorrosActual = calcularTotalAhorros('actual');
-    double totalDeudasActual = calcularTotalDeudas('actual');
-    double totalGastosFijosActual = calcularTotalGastosFijos('actual');
-    double totalGastosVariablesActual = calcularTotalGastosVariables('actual');
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: _firestoreService.streamUserData(user.uid),
+      builder: (context, snapshot) {
+        // Mostrar loading mientras carga
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Color(0xFF0F172A),
+            body: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+              ),
+            ),
+          );
+        }
 
-    // Cálculos para Financial Summary
-    double gastadoHastaAhora =
-        totalGastosFijosActual + totalGastosVariablesActual;
-    double disponibleGastar =
-        totalActual -
-        totalAhorrosActual -
-        totalDeudasActual -
-        gastadoHastaAhora;
-
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 0, 0, 0), // Fondo oscuro
-      body: Column(
-        children: [
-          // HEADER
-          HeaderWidget(
-            mesActual: mesActual,
-            anioActual: anioActual,
-            onMesChanged: cambiarMes,
-            nombresMeses: nombresMeses,
-          ),
-
-          // CONTENIDO PRINCIPAL
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+        // Mostrar error si algo salió mal
+        if (snapshot.hasError) {
+          return Scaffold(
+            backgroundColor: const Color(0xFF0F172A),
+            body: Center(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // FILA 1: 4 COLUMNAS (Income, Transactions, Fixed, Variable)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // COLUMNA 1: Income
-                      Expanded(
-                        flex: 1,
-                        child: _buildSeccionIngresos(
-                          totalPresupuestado,
-                          totalActual,
-                          disponibleGastar,
-                          gastadoHastaAhora,
-                          totalAhorrosActual,
-                          totalDeudasActual,
-                        ),
-                      ),
-
-                      const SizedBox(width: 20),
-
-                      // COLUMNA 2: Transactions
-                      Expanded(flex: 1, child: _buildSeccionTransacciones()),
-
-                      const SizedBox(width: 20),
-
-                      // COLUMNA 3: Fixed Expenses
-                      Expanded(flex: 1, child: _buildSeccionGastosFijos()),
-
-                      const SizedBox(width: 20),
-
-                      // COLUMNA 4: Variable Expenses
-                      Expanded(flex: 1, child: _buildSeccionGastosVariables()),
-                    ],
+                  const Icon(
+                    Icons.error_outline,
+                    color: Color(0xFFEF4444),
+                    size: 64,
                   ),
-
-                  const SizedBox(height: 30),
-
-                  // FILA 2: FINANCIAL SUMMARY (ancho completo)
-                  FinancialSummaryWidget(
-                    availableToSpend: disponibleGastar,
-                    spentSoFar: gastadoHastaAhora,
-                    savings: totalAhorrosActual,
-                    debts: totalDeudasActual,
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error cargando datos: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
             ),
+          );
+        }
+
+        // Extraer datos del snapshot
+        final data = snapshot.data ?? {};
+        final ingresos =
+            data['ingresos'] as Map<String, Map<String, dynamic>>? ?? {};
+        final gastosFijos =
+            data['gastosFijos'] as Map<String, Map<String, dynamic>>? ?? {};
+        final gastosVariables =
+            data['gastosVariables'] as Map<String, Map<String, dynamic>>? ?? {};
+        final ahorros = <String, Map<String, dynamic>>{}; // Por ahora vacío
+        final deudas = <String, Map<String, dynamic>>{}; // Por ahora vacío
+
+        double totalPresupuestado = calcularTotalIngresos(ingresos, 'estimado');
+        double totalActual = calcularTotalIngresos(ingresos, 'actual');
+        double totalAhorrosActual = calcularTotalAhorros(ahorros, 'actual');
+        double totalDeudasActual = calcularTotalDeudas(deudas, 'actual');
+        double totalGastosFijosActual = calcularTotalGastosFijos(
+          gastosFijos,
+          'actual',
+        );
+        double totalGastosVariablesActual = calcularTotalGastosVariables(
+          gastosVariables,
+          'actual',
+        );
+
+        // Cálculos para Financial Summary
+        double gastadoHastaAhora =
+            totalGastosFijosActual + totalGastosVariablesActual;
+        double disponibleGastar =
+            totalActual -
+            totalAhorrosActual -
+            totalDeudasActual -
+            gastadoHastaAhora;
+
+        return Scaffold(
+          backgroundColor: const Color.fromARGB(255, 0, 0, 0), // Fondo oscuro
+          body: Column(
+            children: [
+              // HEADER
+              HeaderWidget(
+                mesActual: mesActual,
+                anioActual: anioActual,
+                onMesChanged: cambiarMes,
+                nombresMeses: nombresMeses,
+              ),
+
+              // CONTENIDO PRINCIPAL
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      // FILA 1: 4 COLUMNAS (Income, Transactions, Fixed, Variable)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // COLUMNA 1: Income
+                          Expanded(
+                            flex: 1,
+                            child: IngresosWidget(
+                              ingresos: ingresos,
+                              totalAhorrosActual: totalAhorrosActual,
+                              totalDeudasActual: totalDeudasActual,
+                              gastadoHastaAhora: gastadoHastaAhora,
+                              mesActual: mesActual,
+                              anioActual: anioActual,
+                              onIngresosUpdated: (nuevosIngresos) {
+                                // No necesitamos setState aquí porque el StreamBuilder
+                                // detectará automáticamente los cambios en Firebase
+                              },
+                            ),
+                          ),
+
+                          const SizedBox(width: 20),
+
+                          // COLUMNA 2: Transactions
+                          Expanded(
+                            flex: 1,
+                            child: TransaccionesWidget(
+                              transacciones: transacciones,
+                            ),
+                          ),
+
+                          const SizedBox(width: 20),
+
+                          // COLUMNA 3: Fixed Expenses
+                          Expanded(
+                            flex: 1,
+                            child: GastosFijosWidget(gastosFijos: gastosFijos),
+                          ),
+
+                          const SizedBox(width: 20),
+
+                          // COLUMNA 4: Variable Expenses
+                          Expanded(
+                            flex: 1,
+                            child: GastosVariablesWidget(
+                              gastosVariables: gastosVariables,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // FILA 2: FINANCIAL SUMMARY (ancho completo)
+                      FinancialSummaryWidget(
+                        availableToSpend: disponibleGastar,
+                        spentSoFar: gastadoHastaAhora,
+                        savings: totalAhorrosActual,
+                        debts: totalDeudasActual,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
-  }
-
-  // WIDGET: Sección de Ingresos
-  Widget _buildSeccionIngresos(
-    double totalPresupuestado,
-    double totalActual,
-    double disponibleGastar,
-    double gastadoHastaAhora,
-    double totalAhorrosActual,
-    double totalDeudasActual,
-  ) {
-    return IngresosWidget(
-      ingresos: ingresos,
-      totalAhorrosActual: totalAhorrosActual,
-      totalDeudasActual: totalDeudasActual,
-      gastadoHastaAhora: gastadoHastaAhora,
-      mesActual: mesActual,
-      anioActual: anioActual,
-      onIngresosUpdated: actualizarIngresos,
-    );
-  }
-
-  Widget _buildSeccionTransacciones() {
-    return TransaccionesWidget(transacciones: transacciones);
-  }
-
-  Widget _buildSeccionGastosFijos() {
-    return GastosFijosWidget(gastosFijos: gastosFijos);
-  }
-
-  Widget _buildSeccionGastosVariables() {
-    return GastosVariablesWidget(gastosVariables: gastosVariables);
-  }
-
-  // Función para actualizar ingresos
-  void actualizarIngresos(Map<String, Map<String, dynamic>> nuevosIngresos) {
-    setState(() {
-      ingresos.clear();
-      ingresos.addAll(nuevosIngresos);
-    });
   }
 }
