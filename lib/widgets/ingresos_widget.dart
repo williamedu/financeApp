@@ -5,7 +5,7 @@ import 'add_income_dialog.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 
-class IngresosWidget extends StatelessWidget {
+class IngresosWidget extends StatefulWidget {
   final Map<String, Map<String, dynamic>> ingresos;
 
   final double totalAhorrosActual;
@@ -26,6 +26,11 @@ class IngresosWidget extends StatelessWidget {
     required this.onIngresosUpdated,
   });
 
+  @override
+  State<IngresosWidget> createState() => _IngresosWidgetState();
+}
+
+class _IngresosWidgetState extends State<IngresosWidget> {
   String formatearMoneda(double valor) {
     final formatoDominicano = NumberFormat.currency(
       locale: 'es_DO',
@@ -37,11 +42,40 @@ class IngresosWidget extends StatelessWidget {
 
   double calcularTotal(String tipo) {
     double total = 0;
-    ingresos.forEach((key, value) {
-      total += value[tipo] ?? 0;
+    widget.ingresos.forEach((key, value) {
+      final valor = value[tipo];
+      if (valor is double) {
+        total += valor;
+      } else if (valor is int) {
+        total += valor.toDouble();
+      }
     });
     return total;
   }
+
+  // --- NUEVO MÉTODO DE ESTADO VACÍO (Paso 2) ---
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          children: [
+            Icon(
+              Icons.trending_up_outlined, // Ícono relacionado a ingresos
+              size: 48,
+              color: Color(0xFF475569),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'No income sources added yet',
+              style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  // ----------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +84,8 @@ class IngresosWidget extends StatelessWidget {
     double porcentaje = totalEstimado > 0
         ? (totalActual / totalEstimado) * 100
         : 0;
+
+    bool noIngresos = widget.ingresos.isEmpty; // <--- LÓGICA DE ESTADO
 
     return Container(
       constraints: const BoxConstraints(
@@ -125,72 +161,96 @@ class IngresosWidget extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Actual vs Estimated
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Actual vs Estimated',
-                style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  '${formatearMoneda(totalActual)} / ${formatearMoneda(totalEstimado)}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFF1F5F9),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
+          // Actual vs Estimated - Solo visible si hay ingresos
+          if (!noIngresos)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Actual vs Estimated',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    '${formatearMoneda(totalActual)} / ${formatearMoneda(totalEstimado)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFF1F5F9),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+              ],
+            ),
 
           const SizedBox(height: 8),
 
-          // Barra de progreso
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: porcentaje / 100,
-              minHeight: 8,
-              backgroundColor: const Color(0xFF334155),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF6366F1),
+          // Barra de progreso - Solo visible si hay ingresos
+          if (!noIngresos)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: porcentaje / 100,
+                minHeight: 8,
+                backgroundColor: const Color(0xFF334155),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  Color(0xFF6366F1),
+                ),
               ),
             ),
-          ),
 
           const SizedBox(height: 24),
 
-          // SOURCES
-          const Text(
-            'SOURCES',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF64748B),
-              letterSpacing: 0.5,
+          // SOURCES / Empty State
+          // Reemplazamos el EXPANDED por un Container que permite el crecimiento de la Column externa
+          // NOTA: La Column principal del widget ya tiene mainAxisAlignment: spaceBetween
+          // para distribuir el espacio verticalmente.
+          if (noIngresos)
+            // Si vacío, simplemente mostramos el estado vacío sin Expanded
+            _buildEmptyState()
+          else
+            Column(
+              // Si lleno, mostramos el título y la lista deslizable
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'SOURCES',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF64748B),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Aquí usamos un SizedBox para limitar la altura de la lista
+                // y evitar que la lista se extienda infinitamente en el scroll
+                SizedBox(
+                  height:
+                      300, // Ajuste este valor si necesita más/menos espacio
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    physics: const ClampingScrollPhysics(),
+                    itemCount: widget.ingresos.entries.length,
+                    itemBuilder: (context, index) {
+                      final entry = widget.ingresos.entries.elementAt(index);
+                      return _buildIncomeSource(
+                        entry.key,
+                        entry.value['actual'] ?? 0,
+                        entry.value['estimado'] ?? 0,
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Lista de fuentes de ingreso
-          ...ingresos.entries.take(4).map((entry) {
-            return _buildIncomeSource(
-              entry.key,
-              entry.value['actual'] ?? 0,
-              entry.value['estimado'] ?? 0,
-            );
-          }),
 
           const SizedBox(height: 20),
 
-          // Total Income (grande) - AHORA AL FINAL
+          // Total Income (grande) - ANCLADO ABAJO
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -233,7 +293,8 @@ class IngresosWidget extends StatelessWidget {
                 onPressed: () {
                   showDialog(
                     context: context,
-                    builder: (context) => ViewIncomeDialog(ingresos: ingresos),
+                    builder: (context) =>
+                        ViewIncomeDialog(ingresos: widget.ingresos),
                   );
                 },
                 label: const Text('View Details'),
@@ -252,11 +313,12 @@ class IngresosWidget extends StatelessWidget {
                   showDialog(
                     context: context,
                     builder: (context) => AddIncomeDialog(
-                      incomesExistentes: ingresos.keys.toList(),
+                      incomesExistentes: widget.ingresos.keys.toList(),
                       onAdd: (nombre, estimado, actual) async {
+                        // Lógica de guardado de Firestore (se mantiene igual, no es necesario pegarla aquí ya que no la tocamos)
                         String nombreFinal = nombre;
                         int contador = 2;
-                        while (ingresos.containsKey(nombreFinal)) {
+                        while (widget.ingresos.containsKey(nombreFinal)) {
                           nombreFinal = '$nombre $contador';
                           contador++;
                         }
@@ -316,6 +378,7 @@ class IngresosWidget extends StatelessWidget {
     );
   }
 
+  // --- FUNCIÓN ORIGINAL MOVIDA AL STATE ---
   Widget _buildIncomeSource(String nombre, double actual, double estimado) {
     IconData icono;
     Color colorIcono;

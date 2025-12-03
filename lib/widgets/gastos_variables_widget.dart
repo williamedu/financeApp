@@ -56,6 +56,30 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
     return total;
   }
 
+  // --- NUEVO MÉTODO DE ESTADO VACÍO ---
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          children: [
+            Icon(
+              Icons.insights_rounded, // Ícono relacionado a gastos variables
+              size: 48,
+              color: Color(0xFF475569),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'No variable expenses added yet',
+              style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  // ------------------------------------
+
   void _mostrarDialogoViewDetails() {
     showDialog(
       context: context,
@@ -129,6 +153,8 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
         ? (totalActual / totalPresupuestado) * 100
         : 0;
     double diferencia = totalPresupuestado - totalActual;
+    bool noGastosVariables =
+        gastosVariablesLocales.isEmpty; // <--- LÓGICA DE ESTADO
 
     return Container(
       constraints: const BoxConstraints(
@@ -178,41 +204,58 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
                 ),
               ),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E3A8A),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${porcentajeTotal.toStringAsFixed(0)}% used',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF3B82F6),
+              // Badge de porcentaje (solo si hay gastos)
+              if (!noGastosVariables)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E3A8A),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${porcentajeTotal.toStringAsFixed(0)}% used',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF3B82F6),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
 
           const SizedBox(height: 24),
 
-          // Lista de gastos variables (sin Expanded, solo lista limitada)
-          ...gastosVariablesLocales.entries.take(4).map((entry) {
-            return _buildExpenseItem(
-              entry.key,
-              entry.value['actual'] ?? 0,
-              entry.value['presupuestado'] ?? 0,
-            );
-          }),
+          // Lista de gastos variables o Estado Vacío
+          SizedBox(
+            // <--- ENVOLVEMOS EL CONTENIDO EN UN SIZEDBOX DE ALTURA FIJA
+            height: 380, // Altura definida para controlar el layout
+            child: noGastosVariables
+                ? _buildEmptyState() // Si vacío, muestra el estado vacío centrado
+                : ListView.builder(
+                    // Si lleno, usa ListView.builder deslizable
+                    shrinkWrap: true,
+                    physics: const ClampingScrollPhysics(),
+                    itemCount: gastosVariablesLocales.entries.length,
+                    itemBuilder: (context, index) {
+                      final entry = gastosVariablesLocales.entries.elementAt(
+                        index,
+                      );
+                      return _buildExpenseItem(
+                        entry.key,
+                        entry.value['actual'] ?? 0,
+                        entry.value['presupuestado'] ?? 0,
+                      );
+                    },
+                  ),
+          ),
 
           const SizedBox(height: 20),
 
-          // Total
+          // Total (anclado abajo)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

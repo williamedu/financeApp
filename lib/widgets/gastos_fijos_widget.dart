@@ -56,6 +56,30 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
     return total;
   }
 
+  // --- NUEVO MÉTODO DE ESTADO VACÍO ---
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          children: [
+            Icon(
+              Icons.lock_outline_rounded, // Ícono relacionado a gastos fijos
+              size: 48,
+              color: Color(0xFF475569),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'No fixed expenses added yet',
+              style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  // ------------------------------------
+
   void _mostrarDialogoViewDetails() {
     showDialog(
       context: context,
@@ -123,6 +147,7 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
     double totalActual = calcularTotal('actual');
     double diferencia = totalPresupuestado - totalActual;
     bool onTrack = totalActual <= totalPresupuestado;
+    bool noGastosFijos = gastosFijosLocales.isEmpty; // <--- LÓGICA DE ESTADO
 
     return Container(
       constraints: const BoxConstraints(
@@ -172,45 +197,61 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
                 ),
               ),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: onTrack
-                      ? const Color(0xFF064E3B)
-                      : const Color(0xFF7F1D1D),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  onTrack ? 'On Track' : 'Over Budget',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+              // Badge de estado (solo si hay gastos)
+              if (!noGastosFijos)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
                     color: onTrack
-                        ? const Color(0xFF10B981)
-                        : const Color(0xFFEF4444),
+                        ? const Color(0xFF064E3B)
+                        : const Color(0xFF7F1D1D),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    onTrack ? 'On Track' : 'Over Budget',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: onTrack
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFFEF4444),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
 
           const SizedBox(height: 24),
 
-          // Lista de gastos fijos (sin Expanded, solo lista limitada)
-          ...gastosFijosLocales.entries.take(4).map((entry) {
-            return _buildExpenseItem(
-              entry.key,
-              entry.value['actual'] ?? 0,
-              entry.value['presupuestado'] ?? 0,
-            );
-          }),
+          // Lista de gastos fijos o Estado Vacío
+          // Usamos Column para asegurar que el listado o el estado vacío se dimensionen correctamente.
+          SizedBox(
+            // Le damos una altura definida a toda la sección de contenido para que no falle.
+            // Altura = Altura Mínima del Widget (630) - Header (~100) - Footer (~150)
+            height: 380, // Valor ajustado
+            child: noGastosFijos
+                ? _buildEmptyState() // Si vacío, muestra el estado vacío (centrado dentro del SizedBox)
+                : ListView.builder(
+                    // Si lleno, usa ListView.builder deslizable
+                    shrinkWrap: true,
+                    physics: const ClampingScrollPhysics(),
+                    itemCount: gastosFijosLocales.entries.length,
+                    itemBuilder: (context, index) {
+                      final entry = gastosFijosLocales.entries.elementAt(index);
+                      return _buildExpenseItem(
+                        entry.key,
+                        entry.value['actual'] ?? 0,
+                        entry.value['presupuestado'] ?? 0,
+                      );
+                    },
+                  ),
+          ),
 
           const SizedBox(height: 20),
-
-          // Total
+          // Total (anclado abajo)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
