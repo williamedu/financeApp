@@ -3,6 +3,9 @@ import 'package:intl/intl.dart';
 import '../widgets/view_transactions_dialog.dart';
 import '../widgets/add_transaction_dialog.dart';
 
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
+
 class TransaccionesWidget extends StatefulWidget {
   final List<Map<String, dynamic>> transacciones;
 
@@ -13,14 +16,6 @@ class TransaccionesWidget extends StatefulWidget {
 }
 
 class _TransaccionesWidgetState extends State<TransaccionesWidget> {
-  late List<Map<String, dynamic>> transaccionesLocales;
-
-  @override
-  void initState() {
-    super.initState();
-    transaccionesLocales = List.from(widget.transacciones);
-  }
-
   String formatearMoneda(double valor) {
     final formatoDominicano = NumberFormat.currency(
       locale: 'es_DO',
@@ -34,13 +29,13 @@ class _TransaccionesWidgetState extends State<TransaccionesWidget> {
     showDialog(
       context: context,
       builder: (context) =>
-          ViewTransactionsDialog(transacciones: transaccionesLocales),
+          ViewTransactionsDialog(transacciones: widget.transacciones),
     );
   }
 
   void _mostrarDialogoAgregar() {
     // Obtener categorías únicas existentes
-    final categoriasExistentes = transaccionesLocales
+    final categoriasExistentes = widget.transacciones
         .map((t) => t['categoria'] as String)
         .toSet()
         .toList();
@@ -49,22 +44,50 @@ class _TransaccionesWidgetState extends State<TransaccionesWidget> {
       context: context,
       builder: (context) => AddTransactionDialog(
         categoriasExistentes: categoriasExistentes,
-        onAdd: (categoria, monto, concepto, fecha) {
-          setState(() {
-            transaccionesLocales.insert(0, {
-              'categoria': categoria,
-              'monto': monto,
-              'concepto': concepto,
-              'fecha': fecha,
-            });
-          });
+        onAdd: (categoria, monto, concepto, fecha) async {
+          // Guardar en Firebase
+          final authService = AuthService();
+          final firestoreService = FirestoreService();
+          final user = authService.currentUser;
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Transacción agregada exitosamente'),
-              backgroundColor: Color(0xFF8B5CF6),
-            ),
-          );
+          if (user != null) {
+            try {
+              await firestoreService.addTransaccion(
+                uid: user.uid,
+                categoria: categoria,
+                monto: monto,
+                concepto: concepto,
+                fecha: fecha,
+              );
+
+              // Cerrar el diálogo primero
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
+
+              // Esperar un momento antes de mostrar el SnackBar
+              await Future.delayed(const Duration(milliseconds: 100));
+
+              // Mostrar mensaje de éxito usando el contexto del widget principal
+              if (mounted) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Transacción agregada exitosamente'),
+                    backgroundColor: Color(0xFF8B5CF6),
+                  ),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error al guardar: $e'),
+                    backgroundColor: const Color(0xFFEF4444),
+                  ),
+                );
+              }
+            }
+          }
         },
       ),
     );
@@ -72,13 +95,14 @@ class _TransaccionesWidgetState extends State<TransaccionesWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final transaccionesMostradas = transaccionesLocales.take(5).toList();
+    final transaccionesMostradas = widget.transacciones.take(5).toList();
 
     return Container(
       constraints: const BoxConstraints(
         minWidth: 350,
         maxWidth: 500,
-        minHeight: 630,
+        minHeight: 400,
+        maxHeight: 631, // Agregar altura máxima
       ),
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B), // Fondo oscuro
@@ -132,7 +156,7 @@ class _TransaccionesWidgetState extends State<TransaccionesWidget> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${transaccionesLocales.length} items',
+                  '${widget.transacciones.length} items',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -156,7 +180,7 @@ class _TransaccionesWidgetState extends State<TransaccionesWidget> {
                 transaccion['fecha'] ?? '',
                 transaccion['monto'] ?? 0.0,
               );
-            }).toList(),
+            }),
 
           const SizedBox(height: 16),
 
@@ -251,9 +275,9 @@ class _TransaccionesWidgetState extends State<TransaccionesWidget> {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 0),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(5),
         decoration: BoxDecoration(
           color: const Color(0xFF334155), // Fondo de item oscuro
           borderRadius: BorderRadius.circular(10),

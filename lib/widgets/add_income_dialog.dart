@@ -250,7 +250,7 @@ class _AddIncomeDialogState extends State<AddIncomeDialog> {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: incomeExistenteSeleccionado,
+          initialValue: incomeExistenteSeleccionado,
           dropdownColor: const Color(0xFF334155),
           style: const TextStyle(color: Color(0xFFF1F5F9)),
           decoration: InputDecoration(

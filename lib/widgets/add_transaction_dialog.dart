@@ -47,7 +47,9 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               surface: Color(0xFF1E293B),
               onSurface: Color(0xFFF1F5F9),
             ),
-            dialogBackgroundColor: const Color(0xFF1E293B),
+            dialogTheme: DialogThemeData(
+              backgroundColor: const Color(0xFF1E293B),
+            ),
           ),
           child: child!,
         );
@@ -138,7 +140,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _categoriaSeleccionada,
+                initialValue: _categoriaSeleccionada,
                 dropdownColor: const Color(0xFF334155),
                 decoration: InputDecoration(
                   filled: true,

@@ -32,7 +32,6 @@ class FinanceApp extends StatelessWidget {
           primary: Color(0xFF6366F1),
           secondary: Color(0xFF8B5CF6),
           surface: Color(0xFF1E293B),
-          background: Color(0xFF0F172A),
           error: Color(0xFFEF4444),
         ),
       ),

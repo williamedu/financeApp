@@ -146,10 +146,18 @@ class FirestoreService {
       // Cargar transacciones
       final transaccionesSnapshot = await userRef
           .collection('transacciones')
+          .orderBy('createdAt', descending: true)
           .get();
       List<Map<String, dynamic>> transacciones = [];
       for (var doc in transaccionesSnapshot.docs) {
-        transacciones.add(doc.data());
+        final data = doc.data();
+        transacciones.add({
+          'id': doc.id,
+          'categoria': data['categoria'] ?? '',
+          'monto': (data['monto'] ?? 0).toDouble(),
+          'concepto': data['concepto'] ?? '',
+          'fecha': data['fecha'] ?? '',
+        });
       }
 
       return {
@@ -169,11 +177,11 @@ class FirestoreService {
     }
   }
 
-  // Stream para escuchar cambios en tiempo real
   Stream<Map<String, dynamic>> streamUserData(String uid) {
     final userRef = _firestore.collection('users').doc(uid);
 
-    return userRef.snapshots().asyncMap((userDoc) async {
+    // Escuchar cambios en el documento padre Y en las subcolecciones
+    return userRef.snapshots().asyncExpand((userDoc) async* {
       try {
         // Cargar ingresos
         final ingresosSnapshot = await userRef.collection('ingresos').get();
@@ -227,15 +235,32 @@ class FirestoreService {
           };
         }
 
-        return {
+        // Cargar transacciones
+        final transaccionesSnapshot = await userRef
+            .collection('transacciones')
+            .orderBy('createdAt', descending: true)
+            .get();
+        List<Map<String, dynamic>> transacciones = [];
+        for (var doc in transaccionesSnapshot.docs) {
+          final data = doc.data();
+          transacciones.add({
+            'id': doc.id,
+            'categoria': data['categoria'] ?? '',
+            'monto': (data['monto'] ?? 0).toDouble(),
+            'concepto': data['concepto'] ?? '',
+            'fecha': data['fecha'] ?? '',
+          });
+        }
+
+        yield {
           'ingresos': ingresos,
           'gastosFijos': gastosFijos,
           'gastosVariables': gastosVariables,
-          'transacciones': [],
+          'transacciones': transacciones,
         };
       } catch (e) {
         print('❌ Error en stream: $e');
-        return {
+        yield {
           'ingresos': <String, Map<String, dynamic>>{},
           'gastosFijos': <String, Map<String, dynamic>>{},
           'gastosVariables': <String, Map<String, dynamic>>{},
@@ -297,6 +322,81 @@ class FirestoreService {
       }, SetOptions(merge: true));
     } catch (e) {
       debugPrint('❌ Error agregando gasto variable: $e');
+      rethrow;
+    }
+  }
+
+  // Agregar un ingreso
+  Future<void> addIngreso({
+    required String uid,
+    required String nombre,
+    required double estimado,
+    required double actual,
+  }) async {
+    try {
+      final userRef = _firestore.collection('users').doc(uid);
+      await userRef.collection('ingresos').add({
+        'nombre': nombre,
+        'estimado': estimado,
+        'actual': actual,
+        'icon': Icons.attach_money_rounded.codePoint,
+        'color': 0xFF10B981,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      debugPrint('✅ Ingreso agregado: $nombre');
+      // Forzar actualización del stream tocando el documento padre
+      await userRef.set({
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('❌ Error agregando ingreso: $e');
+      rethrow;
+    }
+  }
+
+  // Agregar una transacción
+  Future<void> addTransaccion({
+    required String uid,
+    required String categoria,
+    required double monto,
+    required String concepto,
+    required String fecha,
+  }) async {
+    try {
+      final userRef = _firestore.collection('users').doc(uid);
+      await userRef.collection('transacciones').add({
+        'categoria': categoria,
+        'monto': monto,
+        'concepto': concepto,
+        'fecha': fecha,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      debugPrint('✅ Transacción agregada: $categoria - $monto');
+      // Forzar actualización del stream
+      await userRef.set({
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('❌ Error agregando transacción: $e');
+      rethrow;
+    }
+  }
+
+  // Eliminar una transacción
+  Future<void> deleteTransaccion({
+    required String uid,
+    required String transaccionId,
+  }) async {
+    try {
+      final userRef = _firestore.collection('users').doc(uid);
+      await userRef.collection('transacciones').doc(transaccionId).delete();
+      debugPrint('✅ Transacción eliminada');
+      // Forzar actualización del stream
+      await userRef.set({
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('❌ Error eliminando transacción: $e');
       rethrow;
     }
   }

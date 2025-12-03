@@ -250,7 +250,7 @@ class _AddFixedExpenseDialogState extends State<AddFixedExpenseDialog> {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: categoriaExistenteSeleccionada,
+          initialValue: categoriaExistenteSeleccionada,
           dropdownColor: const Color(0xFF334155),
           style: const TextStyle(color: Color(0xFFF1F5F9)),
           decoration: InputDecoration(

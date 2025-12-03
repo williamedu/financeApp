@@ -41,58 +41,6 @@ class _HomePageState extends State<HomePage> {
   final AuthService _authService = AuthService();
   final FirestoreService _firestoreService = FirestoreService();
 
-  // TRANSACCIONES (por ahora hardcodeadas, las implementaremos después)
-  final List<Map<String, dynamic>> transacciones = [
-    {
-      'categoria': 'Combustible',
-      'monto': 2500.00,
-      'fecha': '01/11/2024',
-      'concepto': 'Tanque de gasolina',
-    },
-    {
-      'categoria': 'Compras',
-      'monto': 1984.00,
-      'fecha': '02/11/2024',
-      'concepto': 'Supermercado compras',
-    },
-    {
-      'categoria': 'Fast Food',
-      'monto': 285.00,
-      'fecha': '03/11/2024',
-      'concepto': 'Almuerzo restaurante',
-    },
-    {
-      'categoria': 'Retiro efectivo',
-      'monto': 500.00,
-      'fecha': '04/11/2024',
-      'concepto': 'Efectivo ATM',
-    },
-    {
-      'categoria': 'Agua W magno',
-      'monto': 2000.00,
-      'fecha': '05/11/2024',
-      'concepto': 'Pago agua mensual',
-    },
-    {
-      'categoria': 'Compras',
-      'monto': 897.00,
-      'fecha': '06/11/2024',
-      'concepto': 'Cositas utiles del hogar',
-    },
-    {
-      'categoria': 'Renta',
-      'monto': 11250.00,
-      'fecha': '07/11/2024',
-      'concepto': 'Pago renta del mes',
-    },
-    {
-      'categoria': 'Suscripciones',
-      'monto': 250.00,
-      'fecha': '08/11/2024',
-      'concepto': 'HBO max',
-    },
-  ];
-
   // Función para cambiar mes
   void cambiarMes(int nuevoMes) {
     setState(() {
@@ -261,7 +209,11 @@ class _HomePageState extends State<HomePage> {
             data['gastosVariables'] as Map<String, Map<String, dynamic>>? ?? {};
         final ahorros = <String, Map<String, dynamic>>{}; // Por ahora vacío
         final deudas = <String, Map<String, dynamic>>{}; // Por ahora vacío
-
+        final transacciones =
+            (data['transacciones'] as List?)
+                ?.map((item) => item as Map<String, dynamic>)
+                .toList() ??
+            [];
         double totalPresupuestado = calcularTotalIngresos(ingresos, 'estimado');
         double totalActual = calcularTotalIngresos(ingresos, 'actual');
         double totalAhorrosActual = calcularTotalAhorros(ahorros, 'actual');

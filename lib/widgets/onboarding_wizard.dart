@@ -32,9 +32,9 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
   Map<String, Map<String, dynamic>> gastosVariables = {};
 
   // Controladores para los checkboxes
-  Map<String, TextEditingController> _incomeControllers = {};
-  Map<String, TextEditingController> _fixedExpenseControllers = {};
-  Map<String, TextEditingController> _variableExpenseControllers = {};
+  final Map<String, TextEditingController> _incomeControllers = {};
+  final Map<String, TextEditingController> _fixedExpenseControllers = {};
+  final Map<String, TextEditingController> _variableExpenseControllers = {};
 
   // Controladores para formularios personalizados
   final _customIncomeNameController = TextEditingController();
@@ -460,7 +460,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
               entry.value['icon'] as IconData,
               entry.value['color'] as Color,
             );
-          }).toList(),
+          }),
         ],
       ],
     );
@@ -604,7 +604,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
               entry.value['icon'] as IconData,
               entry.value['color'] as Color,
             );
-          }).toList(),
+          }),
         ],
       ],
     );
@@ -748,7 +748,7 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
               entry.value['icon'] as IconData,
               entry.value['color'] as Color,
             );
-          }).toList(),
+          }),
         ],
       ],
     );

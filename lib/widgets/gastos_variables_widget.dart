@@ -208,7 +208,7 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
               entry.value['actual'] ?? 0,
               entry.value['presupuestado'] ?? 0,
             );
-          }).toList(),
+          }),
 
           const SizedBox(height: 20),
 

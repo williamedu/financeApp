@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../screens/income_details_page.dart';
+import 'view_income_dialog.dart';
+import 'add_income_dialog.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 
 class IngresosWidget extends StatelessWidget {
   final Map<String, Map<String, dynamic>> ingresos;
@@ -80,7 +83,7 @@ class IngresosWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF064E3B), // Fondo verde oscuro
+                  color: const Color(0xFF064E3B),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -95,11 +98,10 @@ class IngresosWidget extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFFF1F5F9), // Texto claro
+                  color: Color(0xFFF1F5F9),
                 ),
               ),
               const Spacer(),
-              // Badge con porcentaje
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -164,12 +166,36 @@ class IngresosWidget extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Total Income (grande)
+          // SOURCES
+          const Text(
+            'SOURCES',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF64748B),
+              letterSpacing: 0.5,
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Lista de fuentes de ingreso
+          ...ingresos.entries.take(4).map((entry) {
+            return _buildIncomeSource(
+              entry.key,
+              entry.value['actual'] ?? 0,
+              entry.value['estimado'] ?? 0,
+            );
+          }),
+
+          const SizedBox(height: 20),
+
+          // Total Income (grande) - AHORA AL FINAL
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF064E3B), // Fondo verde oscuro
+              color: const Color(0xFF064E3B),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: const Color(0xFF10B981).withOpacity(0.3),
@@ -197,62 +223,93 @@ class IngresosWidget extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 20),
-
-          // SOURCES
-          const Text(
-            'SOURCES',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF64748B),
-              letterSpacing: 0.5,
-            ),
-          ),
-
           const SizedBox(height: 16),
 
-          // Lista de fuentes de ingreso
-          ...ingresos.entries.map((entry) {
-            return _buildIncomeSource(
-              entry.key,
-              entry.value['actual'] ?? 0,
-              entry.value['estimado'] ?? 0,
-            );
-          }).toList(),
-
-          const SizedBox(height: 16),
-
-          // View Income Details button
-          Center(
-            child: TextButton.icon(
-              onPressed: () async {
-                final resultado =
-                    await Navigator.push<Map<String, Map<String, double>>>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => IncomeDetailsPage(
-                          ingresos: ingresos,
-                          mesActual: mesActual,
-                          anioActual: anioActual,
-                        ),
-                      ),
-                    );
-
-                if (resultado != null) {
-                  onIngresosUpdated(resultado);
-                }
-              },
-              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-              label: const Text('View Income Details'),
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF6366F1),
-                textStyle: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+          // Botones View Details y Add
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => ViewIncomeDialog(ingresos: ingresos),
+                  );
+                },
+                label: const Text('View Details'),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF6366F1),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AddIncomeDialog(
+                      incomesExistentes: ingresos.keys.toList(),
+                      onAdd: (nombre, estimado, actual) async {
+                        String nombreFinal = nombre;
+                        int contador = 2;
+                        while (ingresos.containsKey(nombreFinal)) {
+                          nombreFinal = '$nombre $contador';
+                          contador++;
+                        }
+
+                        final authService = AuthService();
+                        final firestoreService = FirestoreService();
+                        final user = authService.currentUser;
+
+                        if (user != null) {
+                          try {
+                            await firestoreService.addIngreso(
+                              uid: user.uid,
+                              nombre: nombreFinal,
+                              estimado: estimado,
+                              actual: actual,
+                            );
+
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Ingreso agregado exitosamente',
+                                  ),
+                                  backgroundColor: Color(0xFF10B981),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error al guardar: $e'),
+                                  backgroundColor: const Color(0xFFEF4444),
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: const Text('Add'),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF6366F1),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

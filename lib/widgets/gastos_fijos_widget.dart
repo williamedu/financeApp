@@ -206,7 +206,7 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
               entry.value['actual'] ?? 0,
               entry.value['presupuestado'] ?? 0,
             );
-          }).toList(),
+          }),
 
           const SizedBox(height: 20),
 
