@@ -282,6 +282,9 @@ class _HomePageState extends State<HomePage> {
                             flex: 1,
                             child: TransaccionesWidget(
                               transacciones: transacciones,
+                              // AGREGAR ESTAS DOS LÍNEAS:
+                              gastosFijos: gastosFijos,
+                              gastosVariables: gastosVariables,
                             ),
                           ),
 

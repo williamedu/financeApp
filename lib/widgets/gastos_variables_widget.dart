@@ -236,7 +236,6 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
             child: noGastosVariables
                 ? _buildEmptyState() // Si vacío, muestra el estado vacío centrado
                 : ListView.builder(
-                    // Si lleno, usa ListView.builder deslizable
                     shrinkWrap: true,
                     physics: const ClampingScrollPhysics(),
                     itemCount: gastosVariablesLocales.entries.length,
@@ -248,6 +247,8 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
                         entry.key,
                         entry.value['actual'] ?? 0,
                         entry.value['presupuestado'] ?? 0,
+                        customIcon: entry.value['icon'],
+                        customColor: entry.value['color'],
                       );
                     },
                   ),
@@ -357,98 +358,111 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
     );
   }
 
-  Widget _buildExpenseItem(String nombre, double actual, double presupuestado) {
+  Widget _buildExpenseItem(
+    String nombre,
+    double actual,
+    double presupuestado, {
+    IconData? customIcon,
+    Color? customColor,
+  }) {
     double porcentaje = presupuestado > 0 ? (actual / presupuestado) * 100 : 0;
     bool overBudget = actual > presupuestado && presupuestado > 0;
 
     IconData icono;
     Color colorIcono;
 
-    // Asignar ícono según categoría
-    switch (nombre.toLowerCase()) {
-      case 'compras':
-      case 'groceries':
-        icono = Icons.shopping_cart_outlined;
-        colorIcono = const Color(0xFF8B5CF6);
-        break;
-      case 'fast food':
-      case 'dining out / fast food':
-        icono = Icons.restaurant_outlined;
-        colorIcono = const Color(0xFFEF4444);
-        break;
-      case 'shopping (clothes/misc)':
-      case 'compras ropa':
-        icono = Icons.shopping_bag_outlined;
-        colorIcono = const Color(0xFFEC4899);
-        break;
-      case 'taxis':
-      case 'taxis / rideshare':
-        icono = Icons.local_taxi_outlined;
-        colorIcono = const Color(0xFFFBBF24);
-        break;
-      case 'entretenimiento':
-      case 'entertainment':
-        icono = Icons.movie_outlined;
-        colorIcono = const Color(0xFF3B82F6);
-        break;
-      case 'health & wellness':
-      case 'vitaminas':
-        icono = Icons.favorite_outline_rounded;
-        colorIcono = const Color(0xFF10B981);
-        break;
-      case 'transferencias':
-        icono = Icons.swap_horiz_rounded;
-        colorIcono = const Color(0xFF6366F1);
-        break;
-      case 'retiro efectivo':
-        icono = Icons.account_balance_wallet_outlined;
-        colorIcono = const Color(0xFF9CA3AF);
-        break;
-      case 'meal prep':
-        icono = Icons.fastfood_outlined;
-        colorIcono = const Color(0xFFF97316);
-        break;
-      case 'agua w magno':
-        icono = Icons.water_drop_outlined;
-        colorIcono = const Color(0xFF06B6D4);
-        break;
-      case 'cuarteo':
-      case 'cosas para casa':
-        icono = Icons.home_work_outlined;
-        colorIcono = const Color(0xFF64748B);
-        break;
-      case 'regalos':
-        icono = Icons.card_giftcard_rounded;
-        colorIcono = const Color(0xFFE11D48);
-        break;
-      case 'laundry':
-      case 'peluquería':
-        icono = Icons.dry_cleaning_outlined;
-        colorIcono = const Color(0xFFA855F7);
-        break;
-      case 'viajes':
-        icono = Icons.flight_outlined;
-        colorIcono = const Color(0xFF0EA5E9);
-        break;
-      case 'excedentes renta':
-        icono = Icons.savings_outlined;
-        colorIcono = const Color(0xFF84CC16);
-        break;
-      case 'femi':
-        icono = Icons.medical_services_outlined;
-        colorIcono = const Color(0xFFEC4899);
-        break;
-      case 'utility asset':
-        icono = Icons.build_outlined;
-        colorIcono = const Color(0xFF78716C);
-        break;
-      case 'salir / accesories':
-        icono = Icons.celebration_outlined;
-        colorIcono = const Color(0xFFF472B6);
-        break;
-      default:
-        icono = Icons.attach_money_rounded;
-        colorIcono = const Color(0xFF94A3B8);
+    // 1. PRIORIDAD: Datos guardados
+    if (customIcon != null && customColor != null) {
+      icono = customIcon;
+      colorIcono = customColor;
+    }
+    // 2. FALLBACK: Switch antiguo
+    else {
+      switch (nombre.toLowerCase()) {
+        case 'compras':
+        case 'groceries':
+          icono = Icons.shopping_cart_outlined;
+          colorIcono = const Color(0xFF8B5CF6);
+          break;
+        case 'fast food':
+        case 'dining out / fast food':
+          icono = Icons.restaurant_outlined;
+          colorIcono = const Color(0xFFEF4444);
+          break;
+        case 'shopping (clothes/misc)':
+        case 'compras ropa':
+          icono = Icons.shopping_bag_outlined;
+          colorIcono = const Color(0xFFEC4899);
+          break;
+        case 'taxis':
+        case 'taxis / rideshare':
+          icono = Icons.local_taxi_outlined;
+          colorIcono = const Color(0xFFFBBF24);
+          break;
+        case 'entretenimiento':
+        case 'entertainment':
+          icono = Icons.movie_outlined;
+          colorIcono = const Color(0xFF3B82F6);
+          break;
+        case 'health & wellness':
+        case 'vitaminas':
+          icono = Icons.favorite_outline_rounded;
+          colorIcono = const Color(0xFF10B981);
+          break;
+        case 'transferencias':
+          icono = Icons.swap_horiz_rounded;
+          colorIcono = const Color(0xFF6366F1);
+          break;
+        case 'retiro efectivo':
+          icono = Icons.account_balance_wallet_outlined;
+          colorIcono = const Color(0xFF9CA3AF);
+          break;
+        case 'meal prep':
+          icono = Icons.fastfood_outlined;
+          colorIcono = const Color(0xFFF97316);
+          break;
+        case 'agua w magno':
+          icono = Icons.water_drop_outlined;
+          colorIcono = const Color(0xFF06B6D4);
+          break;
+        case 'cuarteo':
+        case 'cosas para casa':
+          icono = Icons.home_work_outlined;
+          colorIcono = const Color(0xFF64748B);
+          break;
+        case 'regalos':
+          icono = Icons.card_giftcard_rounded;
+          colorIcono = const Color(0xFFE11D48);
+          break;
+        case 'laundry':
+        case 'peluquería':
+          icono = Icons.dry_cleaning_outlined;
+          colorIcono = const Color(0xFFA855F7);
+          break;
+        case 'viajes':
+          icono = Icons.flight_outlined;
+          colorIcono = const Color(0xFF0EA5E9);
+          break;
+        case 'excedentes renta':
+          icono = Icons.savings_outlined;
+          colorIcono = const Color(0xFF84CC16);
+          break;
+        case 'femi':
+          icono = Icons.medical_services_outlined;
+          colorIcono = const Color(0xFFEC4899);
+          break;
+        case 'utility asset':
+          icono = Icons.build_outlined;
+          colorIcono = const Color(0xFF78716C);
+          break;
+        case 'salir / accesories':
+          icono = Icons.celebration_outlined;
+          colorIcono = const Color(0xFFF472B6);
+          break;
+        default:
+          icono = Icons.attach_money_rounded;
+          colorIcono = const Color(0xFF94A3B8);
+      }
     }
 
     return Padding(
@@ -456,10 +470,8 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Nombre y monto
           Row(
             children: [
-              // Ícono
               Container(
                 width: 36,
                 height: 36,
@@ -470,8 +482,6 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
                 child: Icon(icono, size: 18, color: colorIcono),
               ),
               const SizedBox(width: 12),
-
-              // Nombre
               Expanded(
                 child: Text(
                   nombre,
@@ -482,8 +492,6 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
                   ),
                 ),
               ),
-
-              // Monto actual / presupuestado
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -508,10 +516,7 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
               ),
             ],
           ),
-
           const SizedBox(height: 8),
-
-          // Barra de progreso y porcentaje
           Row(
             children: [
               Expanded(

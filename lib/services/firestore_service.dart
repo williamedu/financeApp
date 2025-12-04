@@ -143,13 +143,16 @@ class FirestoreService {
         };
       }
 
+      // Dentro de streamUserData (y loadUserData)...
       // Cargar transacciones
       final transaccionesSnapshot = await userRef
           .collection('transacciones')
           .orderBy('createdAt', descending: true)
-          .get();
+          .get(); // Ojo: en stream usas snapshots(), ajusta según tu lógica de stream
+
       List<Map<String, dynamic>> transacciones = [];
       for (var doc in transaccionesSnapshot.docs) {
+        // Ojo: si es stream usa el evento
         final data = doc.data();
         transacciones.add({
           'id': doc.id,
@@ -157,6 +160,9 @@ class FirestoreService {
           'monto': (data['monto'] ?? 0).toDouble(),
           'concepto': data['concepto'] ?? '',
           'fecha': data['fecha'] ?? '',
+          // RECUPERAR DATOS VISUALES
+          'icon': data['icon'], // int?
+          'color': data['color'], // int?
         });
       }
 
@@ -214,6 +220,9 @@ class FirestoreService {
               fontFamily: 'MaterialIcons',
             ),
             'color': Color(data['color'] ?? 0xFFF59E0B),
+            // Guardamos los valores crudos también por si acaso
+            'iconCode': data['icon'],
+            'colorValue': data['color'],
           };
         }
 
@@ -232,6 +241,9 @@ class FirestoreService {
               fontFamily: 'MaterialIcons',
             ),
             'color': Color(data['color'] ?? 0xFF3B82F6),
+            // Guardamos los valores crudos también
+            'iconCode': data['icon'],
+            'colorValue': data['color'],
           };
         }
 
@@ -249,6 +261,9 @@ class FirestoreService {
             'monto': (data['monto'] ?? 0).toDouble(),
             'concepto': data['concepto'] ?? '',
             'fecha': data['fecha'] ?? '',
+            // Aquí leemos el icono y color guardados
+            'icon': data['icon'],
+            'color': data['color'],
           });
         }
 
@@ -270,12 +285,13 @@ class FirestoreService {
     });
   }
 
-  // Agregar un gasto fijo
   Future<void> addGastoFijo({
     required String uid,
     required String nombre,
     required double presupuestado,
     required double actual,
+    int? iconCode,
+    int? colorValue,
   }) async {
     try {
       final userRef = _firestore.collection('users').doc(uid);
@@ -283,12 +299,12 @@ class FirestoreService {
         'nombre': nombre,
         'presupuestado': presupuestado,
         'actual': actual,
-        'icon': Icons.attach_money_rounded.codePoint,
-        'color': 0xFFF59E0B,
+        'icon': iconCode ?? Icons.attach_money_rounded.codePoint,
+        'color': colorValue ?? 0xFFF59E0B,
         'createdAt': FieldValue.serverTimestamp(),
       });
       debugPrint('✅ Gasto fijo agregado: $nombre');
-      // Forzar actualización del stream tocando el documento padre
+      // Forzar actualización del stream
       await userRef.set({
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -298,12 +314,13 @@ class FirestoreService {
     }
   }
 
-  // Agregar un gasto variable
   Future<void> addGastoVariable({
     required String uid,
     required String nombre,
     required double presupuestado,
     required double actual,
+    int? iconCode,
+    int? colorValue,
   }) async {
     try {
       final userRef = _firestore.collection('users').doc(uid);
@@ -311,12 +328,11 @@ class FirestoreService {
         'nombre': nombre,
         'presupuestado': presupuestado,
         'actual': actual,
-        'icon': Icons.attach_money_rounded.codePoint,
-        'color': 0xFF3B82F6,
+        'icon': iconCode ?? Icons.attach_money_rounded.codePoint,
+        'color': colorValue ?? 0xFF3B82F6,
         'createdAt': FieldValue.serverTimestamp(),
       });
       debugPrint('✅ Gasto variable agregado: $nombre');
-      // Forzar actualización del stream tocando el documento padre
       await userRef.set({
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -354,13 +370,16 @@ class FirestoreService {
     }
   }
 
-  // Agregar una transacción
+  // Archivo: lib/services/firestore_service.dart
+
   Future<void> addTransaccion({
     required String uid,
     required String categoria,
     required double monto,
     required String concepto,
     required String fecha,
+    int? iconCode,
+    int? colorValue,
   }) async {
     try {
       final userRef = _firestore.collection('users').doc(uid);
@@ -369,10 +388,11 @@ class FirestoreService {
         'monto': monto,
         'concepto': concepto,
         'fecha': fecha,
+        'icon': iconCode,
+        'color': colorValue,
         'createdAt': FieldValue.serverTimestamp(),
       });
-      debugPrint('✅ Transacción agregada: $categoria - $monto');
-      // Forzar actualización del stream
+      debugPrint('✅ Transacción agregada: $categoria');
       await userRef.set({
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -398,6 +418,51 @@ class FirestoreService {
     } catch (e) {
       debugPrint('❌ Error eliminando transacción: $e');
       rethrow;
+    }
+  }
+
+  // INCREMENTAR el monto "actual" de una categoría existente
+  Future<void> updateCategoriaActual({
+    required String uid,
+    required String categoria,
+    required double monto,
+  }) async {
+    try {
+      final userRef = _firestore.collection('users').doc(uid);
+
+      // 1. Buscar y actualizar en Gastos Fijos
+      final fijosSnapshot = await userRef
+          .collection('gastosFijos')
+          .where('nombre', isEqualTo: categoria)
+          .get();
+
+      if (fijosSnapshot.docs.isNotEmpty) {
+        for (var doc in fijosSnapshot.docs) {
+          await doc.reference.update({'actual': FieldValue.increment(monto)});
+          debugPrint('✅ Gasto Fijo actualizado: $categoria (+ $monto)');
+        }
+      }
+
+      // 2. Buscar y actualizar en Gastos Variables
+      final variablesSnapshot = await userRef
+          .collection('gastosVariables')
+          .where('nombre', isEqualTo: categoria)
+          .get();
+
+      if (variablesSnapshot.docs.isNotEmpty) {
+        for (var doc in variablesSnapshot.docs) {
+          await doc.reference.update({'actual': FieldValue.increment(monto)});
+          debugPrint('✅ Gasto Variable actualizado: $categoria (+ $monto)');
+        }
+      }
+
+      // Actualizar timestamp global para refrescar la UI
+      await userRef.set({
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('❌ Error actualizando categoría: $e');
+      // No lanzamos error (rethrow) aquí para no interrumpir el flujo si no se encuentra la categoría
     }
   }
 }

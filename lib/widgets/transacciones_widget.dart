@@ -8,8 +8,17 @@ import '../services/firestore_service.dart';
 
 class TransaccionesWidget extends StatefulWidget {
   final List<Map<String, dynamic>> transacciones;
+  // AGREGAR ESTAS DOS:
+  final Map<String, Map<String, dynamic>> gastosFijos;
+  final Map<String, Map<String, dynamic>> gastosVariables;
 
-  const TransaccionesWidget({super.key, required this.transacciones});
+  const TransaccionesWidget({
+    super.key,
+    required this.transacciones,
+    // Recuerda requerirlas en el constructor
+    required this.gastosFijos,
+    required this.gastosVariables,
+  });
 
   @override
   State<TransaccionesWidget> createState() => _TransaccionesWidgetState();
@@ -34,61 +43,105 @@ class _TransaccionesWidgetState extends State<TransaccionesWidget> {
   }
 
   void _mostrarDialogoAgregar() {
-    // Obtener categorías únicas existentes
-    final categoriasExistentes = widget.transacciones
-        .map((t) => t['categoria'] as String)
-        .toSet()
-        .toList();
+    // 1. Obtener categorías únicas combinando TODO para el buscador
+    final Set<String> todasLasCategorias = {};
+    todasLasCategorias.addAll(
+      widget.transacciones.map((t) => t['categoria'] as String),
+    );
+    todasLasCategorias.addAll(widget.gastosFijos.keys);
+    todasLasCategorias.addAll(widget.gastosVariables.keys);
 
     showDialog(
       context: context,
       builder: (context) => AddTransactionDialog(
-        categoriasExistentes: categoriasExistentes,
-        onAdd: (categoria, monto, concepto, fecha) async {
-          // Guardar en Firebase
-          final authService = AuthService();
-          final firestoreService = FirestoreService();
-          final user = authService.currentUser;
+        categoriasExistentes: todasLasCategorias.toList()..sort(),
+        onAdd:
+            (
+              categoria,
+              monto,
+              concepto,
+              fecha, {
+              bool? crearPresupuesto,
+              String? tipoPresupuesto,
+              double? montoPresupuesto,
+              IconData? icon,
+              Color? color,
+            }) async {
+              final authService = AuthService();
+              final firestoreService = FirestoreService();
+              final user = authService.currentUser;
 
-          if (user != null) {
-            try {
-              await firestoreService.addTransaccion(
-                uid: user.uid,
-                categoria: categoria,
-                monto: monto,
-                concepto: concepto,
-                fecha: fecha,
-              );
+              if (user != null) {
+                try {
+                  // A. Guardar la Transacción
+                  await firestoreService.addTransaccion(
+                    uid: user.uid,
+                    categoria: categoria,
+                    monto: monto,
+                    concepto: concepto,
+                    fecha: fecha,
+                    iconCode: icon?.codePoint,
+                    colorValue: color?.value,
+                  );
 
-              // Cerrar el diálogo primero
-              if (context.mounted) {
-                Navigator.of(context).pop();
+                  // B. ACTUALIZAR CATEGORÍA EXISTENTE (Lógica Nueva)
+                  // Si NO estamos creando un presupuesto nuevo explícitamente,
+                  // intentamos actualizar uno existente que coincida con el nombre.
+                  if (crearPresupuesto != true) {
+                    await firestoreService.updateCategoriaActual(
+                      uid: user.uid,
+                      categoria: categoria,
+                      monto: monto,
+                    );
+                  }
+
+                  // C. Crear Nuevo Presupuesto (Si el usuario activó el switch)
+                  if (crearPresupuesto == true && montoPresupuesto != null) {
+                    if (tipoPresupuesto == 'fijo') {
+                      await firestoreService.addGastoFijo(
+                        uid: user.uid,
+                        nombre: categoria,
+                        presupuestado: montoPresupuesto,
+                        actual: monto,
+                        iconCode: icon?.codePoint,
+                        colorValue: color?.value,
+                      );
+                    } else {
+                      await firestoreService.addGastoVariable(
+                        uid: user.uid,
+                        nombre: categoria,
+                        presupuestado: montoPresupuesto,
+                        actual: monto,
+                        iconCode: icon?.codePoint,
+                        colorValue: color?.value,
+                      );
+                    }
+                  }
+
+                  if (context.mounted) Navigator.of(context).pop();
+
+                  await Future.delayed(const Duration(milliseconds: 100));
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Transacción registrada exitosamente'),
+                        backgroundColor: Color(0xFF8B5CF6),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error al guardar: $e'),
+                        backgroundColor: const Color(0xFFEF4444),
+                      ),
+                    );
+                  }
+                }
               }
-
-              // Esperar un momento antes de mostrar el SnackBar
-              await Future.delayed(const Duration(milliseconds: 100));
-
-              // Mostrar mensaje de éxito usando el contexto del widget principal
-              if (mounted) {
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Transacción agregada exitosamente'),
-                    backgroundColor: Color(0xFF8B5CF6),
-                  ),
-                );
-              }
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error al guardar: $e'),
-                    backgroundColor: const Color(0xFFEF4444),
-                  ),
-                );
-              }
-            }
-          }
-        },
+            },
       ),
     );
   }
@@ -179,6 +232,9 @@ class _TransaccionesWidgetState extends State<TransaccionesWidget> {
                 transaccion['concepto'] ?? '',
                 transaccion['fecha'] ?? '',
                 transaccion['monto'] ?? 0.0,
+                // NUEVOS PARÁMETROS:
+                iconCode: transaccion['icon'],
+                colorValue: transaccion['color'],
               );
             }),
 
@@ -226,8 +282,10 @@ class _TransaccionesWidgetState extends State<TransaccionesWidget> {
     String categoria,
     String concepto,
     String fecha,
-    double monto,
-  ) {
+    double monto, {
+    int? iconCode, // <--- Nuevo
+    int? colorValue, // <--- Nuevo
+  }) {
     bool isIncome =
         monto > 0 &&
         (categoria.toLowerCase().contains('dividend') ||
@@ -237,49 +295,58 @@ class _TransaccionesWidgetState extends State<TransaccionesWidget> {
     IconData icono;
     Color colorIcono;
 
-    switch (categoria.toLowerCase()) {
-      case 'combustible':
-        icono = Icons.local_gas_station_rounded;
-        colorIcono = const Color(0xFFF59E0B);
-        break;
-      case 'compras':
-      case 'groceries':
-        icono = Icons.shopping_cart_outlined;
-        colorIcono = const Color(0xFF8B5CF6);
-        break;
-      case 'fast food':
-        icono = Icons.restaurant_outlined;
-        colorIcono = const Color(0xFFEF4444);
-        break;
-      case 'retiro efectivo':
-      case 'cash withdrawal':
-        icono = Icons.account_balance_wallet_outlined;
-        colorIcono = const Color(0xFF9CA3AF);
-        break;
-      case 'agua w magno':
-        icono = Icons.water_drop_outlined;
-        colorIcono = const Color(0xFF06B6D4);
-        break;
-      case 'renta':
-      case 'rent':
-        icono = Icons.home_outlined;
-        colorIcono = const Color(0xFF6366F1);
-        break;
-      case 'suscripciones':
-        icono = Icons.subscriptions_outlined;
-        colorIcono = const Color(0xFFF59E0B);
-        break;
-      default:
-        icono = Icons.receipt_rounded;
-        colorIcono = const Color(0xFF94A3B8);
+    // 1. INTENTAR USAR DATOS GUARDADOS
+    if (iconCode != null && colorValue != null) {
+      icono = IconData(iconCode, fontFamily: 'MaterialIcons');
+      colorIcono = Color(colorValue);
+    }
+    // 2. SI NO HAY, USAR EL MÉTODO ANTIGUO (FALLBACK)
+    else {
+      switch (categoria.toLowerCase()) {
+        case 'combustible':
+          icono = Icons.local_gas_station_rounded;
+          colorIcono = const Color(0xFFF59E0B);
+          break;
+        case 'compras':
+        case 'groceries':
+          icono = Icons.shopping_cart_outlined;
+          colorIcono = const Color(0xFF8B5CF6);
+          break;
+        case 'fast food':
+          icono = Icons.restaurant_outlined;
+          colorIcono = const Color(0xFFEF4444);
+          break;
+        case 'retiro efectivo':
+        case 'cash withdrawal':
+          icono = Icons.account_balance_wallet_outlined;
+          colorIcono = const Color(0xFF9CA3AF);
+          break;
+        case 'agua w magno':
+          icono = Icons.water_drop_outlined;
+          colorIcono = const Color(0xFF06B6D4);
+          break;
+        case 'renta':
+        case 'rent':
+          icono = Icons.home_outlined;
+          colorIcono = const Color(0xFF6366F1);
+          break;
+        case 'suscripciones':
+          icono = Icons.subscriptions_outlined;
+          colorIcono = const Color(0xFFF59E0B);
+          break;
+        default:
+          icono = Icons.receipt_rounded;
+          colorIcono = const Color(0xFF94A3B8);
+      }
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 0),
+      padding: const EdgeInsets.only(bottom: 0), // Ajuste visual menor
       child: Container(
-        padding: const EdgeInsets.all(5),
+        margin: const EdgeInsets.only(bottom: 8), // Margen para separación
+        padding: const EdgeInsets.all(8), // Padding interno un poco mayor
         decoration: BoxDecoration(
-          color: const Color(0xFF334155), // Fondo de item oscuro
+          color: const Color(0xFF334155),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xFF475569), width: 1),
         ),

@@ -235,16 +235,20 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
             child: noGastosFijos
                 ? _buildEmptyState() // Si vacío, muestra el estado vacío (centrado dentro del SizedBox)
                 : ListView.builder(
-                    // Si lleno, usa ListView.builder deslizable
                     shrinkWrap: true,
                     physics: const ClampingScrollPhysics(),
                     itemCount: gastosFijosLocales.entries.length,
                     itemBuilder: (context, index) {
                       final entry = gastosFijosLocales.entries.elementAt(index);
+                      // FirestoreService ahora devuelve objetos directos en 'icon' y 'color'
                       return _buildExpenseItem(
                         entry.key,
                         entry.value['actual'] ?? 0,
                         entry.value['presupuestado'] ?? 0,
+                        customIcon:
+                            entry.value['icon'], // Puede ser null o IconData
+                        customColor:
+                            entry.value['color'], // Puede ser null o Color
                       );
                     },
                   ),
@@ -353,59 +357,72 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
     );
   }
 
-  Widget _buildExpenseItem(String nombre, double actual, double presupuestado) {
+  Widget _buildExpenseItem(
+    String nombre,
+    double actual,
+    double presupuestado, {
+    IconData? customIcon,
+    Color? customColor,
+  }) {
     double porcentaje = presupuestado > 0 ? (actual / presupuestado) * 100 : 0;
     bool overBudget = actual > presupuestado && presupuestado > 0;
 
     IconData icono;
     Color colorIcono;
 
-    // Asignar ícono según categoría
-    switch (nombre.toLowerCase()) {
-      case 'renta':
-      case 'rent':
-        icono = Icons.home_outlined;
-        colorIcono = const Color(0xFF6366F1);
-        break;
-      case 'internet':
-        icono = Icons.wifi_rounded;
-        colorIcono = const Color(0xFF8B5CF6);
-        break;
-      case 'teléfono':
-      case 'phone bill':
-        icono = Icons.phone_iphone_rounded;
-        colorIcono = const Color(0xFF10B981);
-        break;
-      case 'deporte de mami':
-      case 'gym membership':
-        icono = Icons.fitness_center_rounded;
-        colorIcono = const Color(0xFFEC4899);
-        break;
-      case 'suscripciones':
-      case 'subscriptions (netflix/spotify)':
-        icono = Icons.subscriptions_outlined;
-        colorIcono = const Color(0xFFF59E0B);
-        break;
-      case 'carro mensual':
-      case 'car payment':
-        icono = Icons.directions_car_outlined;
-        colorIcono = const Color(0xFF3B82F6);
-        break;
-      case 'electricidad':
-        icono = Icons.bolt_rounded;
-        colorIcono = const Color(0xFFFBBF24);
-        break;
-      case 'actividad':
-        icono = Icons.local_activity_rounded;
-        colorIcono = const Color(0xFFEC4899);
-        break;
-      case 'colmado':
-        icono = Icons.store_rounded;
-        colorIcono = const Color(0xFF14B8A6);
-        break;
-      default:
-        icono = Icons.attach_money_rounded;
-        colorIcono = const Color(0xFF94A3B8);
+    // 1. PRIORIDAD: Datos guardados
+    if (customIcon != null && customColor != null) {
+      icono = customIcon;
+      colorIcono = customColor;
+    }
+    // 2. FALLBACK: Switch antiguo
+    else {
+      switch (nombre.toLowerCase()) {
+        case 'renta':
+        case 'rent':
+          icono = Icons.home_outlined;
+          colorIcono = const Color(0xFF6366F1);
+          break;
+        case 'internet':
+          icono = Icons.wifi_rounded;
+          colorIcono = const Color(0xFF8B5CF6);
+          break;
+        case 'teléfono':
+        case 'phone bill':
+          icono = Icons.phone_iphone_rounded;
+          colorIcono = const Color(0xFF10B981);
+          break;
+        case 'deporte de mami':
+        case 'gym membership':
+          icono = Icons.fitness_center_rounded;
+          colorIcono = const Color(0xFFEC4899);
+          break;
+        case 'suscripciones':
+        case 'subscriptions (netflix/spotify)':
+          icono = Icons.subscriptions_outlined;
+          colorIcono = const Color(0xFFF59E0B);
+          break;
+        case 'carro mensual':
+        case 'car payment':
+          icono = Icons.directions_car_outlined;
+          colorIcono = const Color(0xFF3B82F6);
+          break;
+        case 'electricidad':
+          icono = Icons.bolt_rounded;
+          colorIcono = const Color(0xFFFBBF24);
+          break;
+        case 'actividad':
+          icono = Icons.local_activity_rounded;
+          colorIcono = const Color(0xFFEC4899);
+          break;
+        case 'colmado':
+          icono = Icons.store_rounded;
+          colorIcono = const Color(0xFF14B8A6);
+          break;
+        default:
+          icono = Icons.attach_money_rounded;
+          colorIcono = const Color(0xFF94A3B8);
+      }
     }
 
     return Padding(
@@ -413,10 +430,8 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Nombre y monto
           Row(
             children: [
-              // Ícono
               Container(
                 width: 36,
                 height: 36,
@@ -427,8 +442,6 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
                 child: Icon(icono, size: 18, color: colorIcono),
               ),
               const SizedBox(width: 12),
-
-              // Nombre
               Expanded(
                 child: Text(
                   nombre,
@@ -439,8 +452,6 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
                   ),
                 ),
               ),
-
-              // Monto actual / presupuestado
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -465,10 +476,7 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
               ),
             ],
           ),
-
           const SizedBox(height: 8),
-
-          // Barra de progreso y porcentaje
           Row(
             children: [
               Expanded(
@@ -493,8 +501,6 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
               ),
             ],
           ),
-
-          // Mostrar si está sobre presupuesto
           if (overBudget)
             Padding(
               padding: const EdgeInsets.only(top: 4),
