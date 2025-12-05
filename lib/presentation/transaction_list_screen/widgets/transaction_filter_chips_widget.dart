@@ -9,10 +9,10 @@ class TransactionFilterChipsWidget extends StatelessWidget {
   final Function(String) onRemoveFilter;
 
   const TransactionFilterChipsWidget({
-    Key? key,
+    super.key,
     required this.activeFilters,
     required this.onRemoveFilter,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -46,10 +46,7 @@ class TransactionFilterChipsWidget extends StatelessWidget {
             ),
             onDeleted: () => onRemoveFilter(filter),
             backgroundColor: theme.colorScheme.surface,
-            side: BorderSide(
-              color: theme.colorScheme.outline,
-              width: 1,
-            ),
+            side: BorderSide(color: theme.colorScheme.outline, width: 1),
           );
         },
       ),

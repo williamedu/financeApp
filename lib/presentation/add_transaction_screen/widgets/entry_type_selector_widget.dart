@@ -10,10 +10,10 @@ class EntryTypeSelectorWidget extends StatelessWidget {
   final Function(String) onTypeChanged;
 
   const EntryTypeSelectorWidget({
-    Key? key,
+    super.key,
     required this.selectedType,
     required this.onTypeChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,10 +34,7 @@ class EntryTypeSelectorWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppTheme.surfaceContainerDark,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.borderSubtle,
-              width: 1,
-            ),
+            border: Border.all(color: AppTheme.borderSubtle, width: 1),
           ),
           child: Column(
             children: [
@@ -113,8 +110,9 @@ class EntryTypeSelectorWidget extends StatelessWidget {
                     title,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurface,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w500,
                     ),
                   ),
                   SizedBox(height: 0.5.h),
@@ -130,10 +128,7 @@ class EntryTypeSelectorWidget extends StatelessWidget {
             if (isSelected)
               Container(
                 padding: EdgeInsets.all(0.5.w),
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                 child: Icon(Icons.check, color: Colors.white, size: 16),
               )
             else

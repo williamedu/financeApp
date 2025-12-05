@@ -7,11 +7,11 @@ class DateSectionHeaderWidget extends StatelessWidget {
   final bool isIncome;
 
   const DateSectionHeaderWidget({
-    Key? key,
+    super.key,
     required this.date,
     required this.totalAmount,
     required this.isIncome,
-  }) : super(key: key);
+  });
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
@@ -36,7 +36,7 @@ class DateSectionHeaderWidget extends StatelessWidget {
         'Septiembre',
         'Octubre',
         'Noviembre',
-        'Diciembre'
+        'Diciembre',
       ];
       return '${date.day} de ${months[date.month - 1]}';
     }

@@ -12,12 +12,12 @@ class BudgetSummaryCardWidget extends StatelessWidget {
   final double spendingPercentage;
 
   const BudgetSummaryCardWidget({
-    Key? key,
+    super.key,
     required this.totalBudget,
     required this.spentAmount,
     required this.remainingBalance,
     required this.spendingPercentage,
-  }) : super(key: key);
+  });
 
   Color _getProgressColor(BuildContext context) {
     final theme = Theme.of(context);
@@ -71,8 +71,9 @@ class BudgetSummaryCardWidget extends StatelessWidget {
                   child: CircularProgressIndicator(
                     value: spendingPercentage / 100,
                     strokeWidth: 12,
-                    backgroundColor:
-                        theme.colorScheme.outline.withValues(alpha: 0.2),
+                    backgroundColor: theme.colorScheme.outline.withValues(
+                      alpha: 0.2,
+                    ),
                     valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                   ),
                 ),

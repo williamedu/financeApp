@@ -14,14 +14,14 @@ class TransactionCardWidget extends StatelessWidget {
   final VoidCallback? onViewReceipt;
 
   const TransactionCardWidget({
-    Key? key,
+    super.key,
     required this.transaction,
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
     required this.onDuplicate,
     this.onViewReceipt,
-  }) : super(key: key);
+  });
 
   Color _getCategoryColor(String category) {
     switch (category.toLowerCase()) {
@@ -237,8 +237,9 @@ class TransactionCardWidget extends StatelessWidget {
               height: 4,
               margin: EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color:
-                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.3,
+                ),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

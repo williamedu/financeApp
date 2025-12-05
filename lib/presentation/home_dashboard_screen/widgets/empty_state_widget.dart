@@ -7,10 +7,7 @@ import '../../../core/app_export.dart';
 class EmptyStateWidget extends StatelessWidget {
   final VoidCallback onAddTransaction;
 
-  const EmptyStateWidget({
-    Key? key,
-    required this.onAddTransaction,
-  }) : super(key: key);
+  const EmptyStateWidget({super.key, required this.onAddTransaction});
 
   @override
   Widget build(BuildContext context) {

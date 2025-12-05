@@ -12,12 +12,12 @@ class BudgetHeaderWidget extends StatelessWidget {
   final VoidCallback onNewBudget;
 
   const BudgetHeaderWidget({
-    Key? key,
+    super.key,
     required this.currentMonth,
     required this.onPreviousMonth,
     required this.onNextMonth,
     required this.onNewBudget,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

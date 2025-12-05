@@ -44,5 +44,6 @@ flutter:
   # Assets
   assets:
     - assets/google_logo.png
+    - assets/apple_logo.png
     # Asegúrate de agregar la carpeta de imágenes si usas las nuevas del diseño
     # - assets/images/

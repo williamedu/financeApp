@@ -80,6 +80,7 @@ class _TransaccionesWidgetState extends State<TransaccionesWidget> {
                     monto: monto,
                     concepto: concepto,
                     fecha: fecha,
+                    type: 'expense', // <--- AGREGA ESTA LÍNEA
                     iconCode: icon?.codePoint,
                     colorValue: color?.value,
                   );

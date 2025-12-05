@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
-import '../../../core/app_export.dart';
-import '../../../widgets/custom_icon_widget.dart';
-
-/// Horizontal scrolling filter chips for transaction categories
 class CategoryFilterChipsWidget extends StatefulWidget {
   final Function(String) onCategorySelected;
 
-  const CategoryFilterChipsWidget({
-    Key? key,
-    required this.onCategorySelected,
-  }) : super(key: key);
+  const CategoryFilterChipsWidget({Key? key, required this.onCategorySelected})
+    : super(key: key);
 
   @override
   State<CategoryFilterChipsWidget> createState() =>
@@ -19,19 +13,19 @@ class CategoryFilterChipsWidget extends StatefulWidget {
 }
 
 class _CategoryFilterChipsWidgetState extends State<CategoryFilterChipsWidget> {
-  String _selectedCategory = 'Todos';
+  // CAMBIO IMPORTANTE: El valor inicial ahora es 'Transacciones'
+  String _selectedCategory = 'Transacciones';
 
+  // CAMBIO IMPORTANTE: Lista actualizada sin 'Todos'
   final List<Map<String, dynamic>> _categories = [
-    {'label': 'Todos', 'icon': 'apps'},
-    {'label': 'Ingresos', 'icon': 'arrow_downward'},
-    {'label': 'Gastos Fijos', 'icon': 'home'},
-    {'label': 'Variables', 'icon': 'shopping_cart'},
+    {'label': 'Transacciones', 'icon': Icons.list_alt},
+    {'label': 'Ingresos', 'icon': Icons.arrow_upward},
+    {'label': 'Gastos Fijos', 'icon': Icons.home_outlined},
+    {'label': 'Variables', 'icon': Icons.shopping_cart_outlined},
   ];
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
       height: 6.h,
       margin: EdgeInsets.symmetric(vertical: 2.h),
@@ -48,20 +42,16 @@ class _CategoryFilterChipsWidgetState extends State<CategoryFilterChipsWidget> {
             label: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CustomIconWidget(
-                  iconName: category['icon'] as String,
-                  color: isSelected
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
+                Icon(
+                  category['icon'],
+                  color: isSelected ? Colors.white : const Color(0xFF94A3B8),
                   size: 18,
                 ),
                 SizedBox(width: 2.w),
                 Text(
                   category['label'] as String,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: isSelected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : const Color(0xFF94A3B8),
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
@@ -74,13 +64,14 @@ class _CategoryFilterChipsWidgetState extends State<CategoryFilterChipsWidget> {
               });
               widget.onCategorySelected(_selectedCategory);
             },
-            backgroundColor: theme.colorScheme.surface,
-            selectedColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+            backgroundColor: const Color(0xFF1E293B),
+            selectedColor: const Color(0xFF6366F1),
+            checkmarkColor: Colors.white,
             side: BorderSide(
               color: isSelected
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.outline,
-              width: isSelected ? 2 : 1,
+                  ? const Color(0xFF6366F1)
+                  : const Color(0xFF334155),
+              width: 1,
             ),
             padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
             shape: RoundedRectangleBorder(

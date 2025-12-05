@@ -16,7 +16,7 @@ class CategoryBudgetCardWidget extends StatelessWidget {
   final VoidCallback onDelete;
 
   const CategoryBudgetCardWidget({
-    Key? key,
+    super.key,
     required this.categoryName,
     required this.categoryIcon,
     required this.categoryColor,
@@ -25,7 +25,7 @@ class CategoryBudgetCardWidget extends StatelessWidget {
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
-  }) : super(key: key);
+  });
 
   double get spendingPercentage {
     if (allocatedAmount == 0) return 0;
@@ -154,8 +154,9 @@ class CategoryBudgetCardWidget extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: spendingPercentage / 100,
                     minHeight: 1.h,
-                    backgroundColor:
-                        theme.colorScheme.outline.withValues(alpha: 0.2),
+                    backgroundColor: theme.colorScheme.outline.withValues(
+                      alpha: 0.2,
+                    ),
                     valueColor: AlwaysStoppedAnimation<Color>(statusColor),
                   ),
                 ),

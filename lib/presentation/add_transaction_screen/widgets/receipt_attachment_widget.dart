@@ -13,10 +13,10 @@ class ReceiptAttachmentWidget extends StatefulWidget {
   final Function(XFile?) onReceiptChanged;
 
   const ReceiptAttachmentWidget({
-    Key? key,
+    super.key,
     required this.attachedReceipt,
     required this.onReceiptChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<ReceiptAttachmentWidget> createState() =>
@@ -50,10 +50,12 @@ class _ReceiptAttachmentWidgetState extends State<ReceiptAttachmentWidget> {
       final camera = kIsWeb
           ? _cameras.firstWhere(
               (c) => c.lensDirection == CameraLensDirection.front,
-              orElse: () => _cameras.first)
+              orElse: () => _cameras.first,
+            )
           : _cameras.firstWhere(
               (c) => c.lensDirection == CameraLensDirection.back,
-              orElse: () => _cameras.first);
+              orElse: () => _cameras.first,
+            );
 
       _cameraController = CameraController(
         camera,
@@ -254,10 +256,7 @@ class _ReceiptAttachmentWidgetState extends State<ReceiptAttachmentWidget> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline,
-          width: 1,
-        ),
+        border: Border.all(color: theme.colorScheme.outline, width: 1),
       ),
       child: Row(
         children: [
@@ -322,10 +321,7 @@ class _ReceiptAttachmentWidgetState extends State<ReceiptAttachmentWidget> {
             label: Text('Cámara'),
             style: OutlinedButton.styleFrom(
               padding: EdgeInsets.symmetric(vertical: 1.5.h),
-              side: BorderSide(
-                color: theme.colorScheme.outline,
-                width: 1,
-              ),
+              side: BorderSide(color: theme.colorScheme.outline, width: 1),
             ),
           ),
         ),
@@ -341,10 +337,7 @@ class _ReceiptAttachmentWidgetState extends State<ReceiptAttachmentWidget> {
             label: Text('Galería'),
             style: OutlinedButton.styleFrom(
               padding: EdgeInsets.symmetric(vertical: 1.5.h),
-              side: BorderSide(
-                color: theme.colorScheme.outline,
-                width: 1,
-              ),
+              side: BorderSide(color: theme.colorScheme.outline, width: 1),
             ),
           ),
         ),

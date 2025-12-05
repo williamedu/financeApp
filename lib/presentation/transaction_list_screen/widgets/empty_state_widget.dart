@@ -8,11 +8,7 @@ class EmptyStateWidget extends StatelessWidget {
   final String type;
   final VoidCallback? onAction;
 
-  const EmptyStateWidget({
-    Key? key,
-    required this.type,
-    this.onAction,
-  }) : super(key: key);
+  const EmptyStateWidget({super.key, required this.type, this.onAction});
 
   @override
   Widget build(BuildContext context) {
@@ -68,8 +64,9 @@ class EmptyStateWidget extends StatelessWidget {
                 child: CustomIconWidget(
                   iconName: iconName,
                   size: 64,
-                  color:
-                      theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.5,
+                  ),
                 ),
               ),
             ),
@@ -92,10 +89,7 @@ class EmptyStateWidget extends StatelessWidget {
             ),
             if (actionText != null && onAction != null) ...[
               SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: onAction,
-                child: Text(actionText),
-              ),
+              ElevatedButton(onPressed: onAction, child: Text(actionText)),
             ],
           ],
         ),

@@ -11,7 +11,7 @@ import './widgets/transaction_card_widget.dart';
 import './widgets/transaction_filter_chips_widget.dart';
 
 class TransactionListScreen extends StatefulWidget {
-  const TransactionListScreen({Key? key}) : super(key: key);
+  const TransactionListScreen({super.key});
 
   @override
   State<TransactionListScreen> createState() => _TransactionListScreenState();
@@ -167,8 +167,8 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
 
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((transaction) {
-        final description =
-            (transaction['description'] as String).toLowerCase();
+        final description = (transaction['description'] as String)
+            .toLowerCase();
         final category = (transaction['category'] as String).toLowerCase();
         final query = _searchQuery.toLowerCase();
         return description.contains(query) || category.contains(query);
@@ -251,7 +251,8 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
       final maxAmount = _currentFilters['maxAmount'] as double;
       if (minAmount > 0 || maxAmount < 10000) {
         filters.add(
-            'Monto: \$${minAmount.toStringAsFixed(0)} - \$${maxAmount.toStringAsFixed(0)}');
+          'Monto: \$${minAmount.toStringAsFixed(0)} - \$${maxAmount.toStringAsFixed(0)}',
+        );
       }
     }
 
@@ -260,7 +261,8 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
       final startDate = _currentFilters['startDate'] as DateTime;
       final endDate = _currentFilters['endDate'] as DateTime;
       filters.add(
-          '${startDate.day}/${startDate.month} - ${endDate.day}/${endDate.month}');
+        '${startDate.day}/${startDate.month} - ${endDate.day}/${endDate.month}',
+      );
     }
 
     setState(() {
@@ -352,9 +354,7 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
               Navigator.pop(context);
               _deleteTransaction(transaction);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFFEF4444),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFEF4444)),
             child: Text('Eliminar'),
           ),
         ],
@@ -398,9 +398,9 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
       _filterTransactions();
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Transacción duplicada')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Transacción duplicada')));
   }
 
   @override
@@ -484,12 +484,14 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
                     type: _searchQuery.isNotEmpty
                         ? 'no_search_results'
                         : _activeFilters.isNotEmpty
-                            ? 'no_filter_results'
-                            : 'no_transactions',
+                        ? 'no_filter_results'
+                        : 'no_transactions',
                     onAction: _activeFilters.isNotEmpty
                         ? _clearAllFilters
                         : () => Navigator.pushNamed(
-                            context, '/add-transaction-screen'),
+                            context,
+                            '/add-transaction-screen',
+                          ),
                   )
                 : RefreshIndicator(
                     onRefresh: _refreshTransactions,
@@ -513,8 +515,10 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
                           0,
                           (sum, t) => sum + (t['amount'] as double),
                         );
-                        final isIncome = transactions.any((t) =>
-                            (t['type'] as String).toLowerCase() == 'ingreso');
+                        final isIncome = transactions.any(
+                          (t) =>
+                              (t['type'] as String).toLowerCase() == 'ingreso',
+                        );
 
                         return Column(
                           children: [
@@ -523,30 +527,31 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
                               totalAmount: totalAmount,
                               isIncome: isIncome,
                             ),
-                            ...transactions
-                                .map((transaction) => TransactionCardWidget(
-                                      transaction: transaction,
-                                      onTap: () {
-                                        // Navigate to transaction details
-                                      },
-                                      onEdit: () {
-                                        Navigator.pushNamed(
-                                          context,
-                                          '/add-transaction-screen',
-                                          arguments: transaction,
-                                        );
-                                      },
-                                      onDelete: () =>
-                                          _showDeleteConfirmation(transaction),
-                                      onDuplicate: () =>
-                                          _duplicateTransaction(transaction),
-                                      onViewReceipt:
-                                          (transaction['hasReceipt'] as bool)
-                                              ? () {
-                                                  // Show receipt viewer
-                                                }
-                                              : null,
-                                    )),
+                            ...transactions.map(
+                              (transaction) => TransactionCardWidget(
+                                transaction: transaction,
+                                onTap: () {
+                                  // Navigate to transaction details
+                                },
+                                onEdit: () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/add-transaction-screen',
+                                    arguments: transaction,
+                                  );
+                                },
+                                onDelete: () =>
+                                    _showDeleteConfirmation(transaction),
+                                onDuplicate: () =>
+                                    _duplicateTransaction(transaction),
+                                onViewReceipt:
+                                    (transaction['hasReceipt'] as bool)
+                                    ? () {
+                                        // Show receipt viewer
+                                      }
+                                    : null,
+                              ),
+                            ),
                           ],
                         );
                       },

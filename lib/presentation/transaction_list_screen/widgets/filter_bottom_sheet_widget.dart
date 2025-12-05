@@ -9,10 +9,10 @@ class FilterBottomSheetWidget extends StatefulWidget {
   final Map<String, dynamic> currentFilters;
 
   const FilterBottomSheetWidget({
-    Key? key,
+    super.key,
     required this.onApplyFilters,
     required this.currentFilters,
-  }) : super(key: key);
+  });
 
   @override
   State<FilterBottomSheetWidget> createState() =>
@@ -33,7 +33,8 @@ class _FilterBottomSheetWidgetState extends State<FilterBottomSheetWidget> {
       (_filters['minAmount'] as double?) ?? 0.0,
       (_filters['maxAmount'] as double?) ?? 10000.0,
     );
-    _startDate = (_filters['startDate'] as DateTime?) ??
+    _startDate =
+        (_filters['startDate'] as DateTime?) ??
         DateTime.now().subtract(Duration(days: 30));
     _endDate = (_filters['endDate'] as DateTime?) ?? DateTime.now();
   }
@@ -57,8 +58,9 @@ class _FilterBottomSheetWidgetState extends State<FilterBottomSheetWidget> {
               height: 4,
               margin: EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color:
-                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.3,
+                ),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

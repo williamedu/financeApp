@@ -5,9 +5,12 @@ class CustomIconWidget extends StatelessWidget {
   final double size;
   final Color? color;
 
-  const CustomIconWidget(
-      {Key? key, required this.iconName, this.size = 24, this.color})
-      : super(key: key);
+  const CustomIconWidget({
+    super.key,
+    required this.iconName,
+    this.size = 24,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2182,7 +2185,7 @@ class CustomIconWidget extends StatelessWidget {
         Icons.help_outline,
         size: size,
         color: Colors.grey,
-        semanticLabel: '$iconName',
+        semanticLabel: iconName,
       );
     }
   }

@@ -9,10 +9,10 @@ class DatePickerWidget extends StatelessWidget {
   final Function(DateTime) onDateSelected;
 
   const DatePickerWidget({
-    Key? key,
+    super.key,
     required this.selectedDate,
     required this.onDateSelected,
-  }) : super(key: key);
+  });
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -52,7 +52,7 @@ class DatePickerWidget extends StatelessWidget {
       'Septiembre',
       'Octubre',
       'Noviembre',
-      'Diciembre'
+      'Diciembre',
     ];
     return '${date.day} de ${months[date.month - 1]}, ${date.year}';
   }
@@ -78,17 +78,11 @@ class DatePickerWidget extends StatelessWidget {
             onTap: () => _selectDate(context),
             borderRadius: BorderRadius.circular(12),
             child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 4.w,
-                vertical: 2.h,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.colorScheme.outline,
-                  width: 1,
-                ),
+                border: Border.all(color: theme.colorScheme.outline, width: 1),
               ),
               child: Row(
                 children: [

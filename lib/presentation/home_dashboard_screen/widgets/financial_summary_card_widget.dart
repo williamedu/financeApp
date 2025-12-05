@@ -1,104 +1,132 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-
 import '../../../core/app_export.dart';
 
-/// Financial summary card widget displaying available spending amount
 class FinancialSummaryCardWidget extends StatelessWidget {
-  final String userName;
-  final double availableAmount;
-  final String currency;
+  final double totalIngresos;
+  final double gastadoHastaAhora;
+  final double disponibleGastar;
 
   const FinancialSummaryCardWidget({
     Key? key,
-    required this.userName,
-    required this.availableAmount,
-    this.currency = '\$',
+    required this.totalIngresos,
+    required this.gastadoHastaAhora,
+    required this.disponibleGastar,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    // Definimos colores específicos para cada métrica
+    final colorIngresos = Colors.greenAccent[400]; // Verde brillante
+    final colorGastado = Colors.redAccent[200]; // Rojo suave
+    final colorDisponible = Colors.white; // Blanco (destacado)
 
     return Container(
       width: double.infinity,
       margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-      padding: EdgeInsets.all(5.w),
+      padding: EdgeInsets.symmetric(vertical: 2.5.h, horizontal: 4.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.incomeGold.withValues(alpha: 0.2),
-            AppTheme.interactiveBlue.withValues(alpha: 0.1),
-          ],
-        ),
+        color: const Color(0xFF1E293B), // Fondo tarjeta oscuro (Slate 800)
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
         border: Border.all(
-          color: AppTheme.borderSubtle,
+          color: const Color(0xFF334155), // Borde sutil
           width: 1,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Disponible para gastar',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+          // 1. INGRESOS
+          _buildCompactMetric(
+            context,
+            label: 'Ingresos',
+            amount: totalIngresos,
+            color: colorIngresos!,
+            icon: Icons.arrow_upward_rounded,
           ),
-          SizedBox(height: 1.h),
+
+          // Divisor vertical
+          Container(height: 4.h, width: 1, color: Colors.grey.withOpacity(0.3)),
+
+          // 2. GASTADO
+          _buildCompactMetric(
+            context,
+            label: 'Gastado',
+            amount: gastadoHastaAhora,
+            color: colorGastado!,
+            icon: Icons.arrow_downward_rounded,
+          ),
+
+          // Divisor vertical
+          Container(height: 4.h, width: 1, color: Colors.grey.withOpacity(0.3)),
+
+          // 3. DISPONIBLE (Más destacado)
+          _buildCompactMetric(
+            context,
+            label: 'Disponible',
+            amount: disponibleGastar,
+            color: colorDisponible,
+            icon: Icons.account_balance_wallet_outlined,
+            isMain: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactMetric(
+    BuildContext context, {
+    required String label,
+    required double amount,
+    required Color color,
+    required IconData icon,
+    bool isMain = false,
+  }) {
+    // Formato de moneda simple (sin decimales .00 para ahorrar espacio si es entero)
+    String amountString = amount.toStringAsFixed(2).replaceAll('.', ',');
+    if (amountString.endsWith(",00")) {
+      amountString = amountString.substring(0, amountString.length - 3);
+    }
+
+    return Expanded(
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.center, // Centrado para diseño compacto
+        children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                currency,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              Icon(icon, size: 12.sp, color: color.withOpacity(0.8)),
               SizedBox(width: 1.w),
-              Expanded(
-                child: Text(
-                  availableAmount.toStringAsFixed(2).replaceAll('.', ','),
-                  style: theme.textTheme.displaySmall?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 9.sp, // Letra pequeña para el título
+                  fontWeight: FontWeight.w500,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
-          SizedBox(height: 2.h),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
-            decoration: BoxDecoration(
-              color: AppTheme.successGreen.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
+          SizedBox(height: 0.5.h),
+          Text(
+            '\$$amountString',
+            style: TextStyle(
+              color: color,
+              fontSize: isMain ? 13.sp : 11.sp, // Disponible un poco más grande
+              fontWeight: FontWeight.bold,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CustomIconWidget(
-                  iconName: 'trending_up',
-                  color: AppTheme.successGreen,
-                  size: 16,
-                ),
-                SizedBox(width: 2.w),
-                Text(
-                  '+12% vs mes anterior',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppTheme.successGreen,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

@@ -12,13 +12,13 @@ class ProfileHeaderWidget extends StatelessWidget {
   final VoidCallback onEditAvatar;
 
   const ProfileHeaderWidget({
-    Key? key,
+    super.key,
     required this.userName,
     required this.userEmail,
     required this.accountCreationDate,
     this.avatarUrl,
     required this.onEditAvatar,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -64,8 +64,9 @@ class ProfileHeaderWidget extends StatelessWidget {
                               "Profile avatar of $userName showing user's profile picture",
                         )
                       : Container(
-                          color:
-                              theme.colorScheme.primary.withValues(alpha: 0.2),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.2,
+                          ),
                           child: Center(
                             child: Text(
                               userName.isNotEmpty
@@ -134,10 +135,7 @@ class ProfileHeaderWidget extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.colorScheme.surface.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: theme.colorScheme.outline,
-                width: 1,
-              ),
+              border: Border.all(color: theme.colorScheme.outline, width: 1),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

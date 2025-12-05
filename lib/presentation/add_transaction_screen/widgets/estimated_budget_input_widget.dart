@@ -9,10 +9,7 @@ import '../../../theme/app_theme.dart';
 class EstimatedBudgetInputWidget extends StatelessWidget {
   final TextEditingController controller;
 
-  const EstimatedBudgetInputWidget({
-    Key? key,
-    required this.controller,
-  }) : super(key: key);
+  const EstimatedBudgetInputWidget({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -23,8 +20,11 @@ class EstimatedBudgetInputWidget extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.account_balance_wallet,
-                color: AppTheme.incomeGold, size: 20),
+            Icon(
+              Icons.account_balance_wallet,
+              color: AppTheme.incomeGold,
+              size: 20,
+            ),
             SizedBox(width: 2.w),
             Text(
               'Presupuesto Estimado',
@@ -91,8 +91,10 @@ class EstimatedBudgetInputWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: AppTheme.incomeGold, width: 2),
             ),
-            contentPadding:
-                EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 4.w,
+              vertical: 2.h,
+            ),
           ),
         ),
         SizedBox(height: 1.h),

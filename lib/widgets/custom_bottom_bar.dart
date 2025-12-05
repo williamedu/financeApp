@@ -1,27 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Navigation item configuration for the bottom navigation bar
-enum CustomBottomBarItem {
-  home,
-  transactions,
-  budget,
-  profile,
-}
+enum CustomBottomBarItem { home, transactions, budget, profile }
 
-/// Custom bottom navigation bar widget for the personal finance application
-/// Implements Material 3 design with platform-specific adaptations
 class CustomBottomBar extends StatelessWidget {
-  /// Currently selected navigation item
   final CustomBottomBarItem selectedItem;
-
-  /// Callback when a navigation item is tapped
   final ValueChanged<CustomBottomBarItem> onItemSelected;
-
-  /// Whether to show labels for navigation items
   final bool showLabels;
-
-  /// Custom elevation for the bottom bar
   final double? elevation;
 
   const CustomBottomBar({
@@ -32,7 +17,6 @@ class CustomBottomBar extends StatelessWidget {
     this.elevation,
   }) : super(key: key);
 
-  /// Get the route path for a navigation item
   String _getRoutePath(CustomBottomBarItem item) {
     switch (item) {
       case CustomBottomBarItem.home:
@@ -46,7 +30,6 @@ class CustomBottomBar extends StatelessWidget {
     }
   }
 
-  /// Get the icon for a navigation item
   IconData _getIcon(CustomBottomBarItem item, bool isSelected) {
     switch (item) {
       case CustomBottomBarItem.home:
@@ -60,38 +43,26 @@ class CustomBottomBar extends StatelessWidget {
     }
   }
 
-  /// Get the label for a navigation item
   String _getLabel(CustomBottomBarItem item) {
     switch (item) {
       case CustomBottomBarItem.home:
         return 'Inicio';
       case CustomBottomBarItem.transactions:
-        return 'Transacciones';
+        return 'Entradas';
       case CustomBottomBarItem.budget:
-        return 'Presupuesto';
+        return 'Presup.';
       case CustomBottomBarItem.profile:
         return 'Perfil';
     }
   }
 
-  /// Handle navigation item tap with haptic feedback
   void _handleItemTap(BuildContext context, CustomBottomBarItem item) {
-    // Provide haptic feedback for better user experience
     HapticFeedback.lightImpact();
-
-    // If same item is tapped, scroll to top (iOS behavior)
     if (item == selectedItem) {
-      // This would require access to scroll controller in the actual screen
-      // For now, just trigger the callback
       onItemSelected(item);
       return;
     }
-
-    // Navigate to the selected screen
-    final routePath = _getRoutePath(item);
-    Navigator.pushReplacementNamed(context, routePath);
-
-    // Notify parent of selection change
+    Navigator.pushReplacementNamed(context, _getRoutePath(item));
     onItemSelected(item);
   }
 
@@ -102,37 +73,36 @@ class CustomBottomBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: const Color(0xFF1E293B), // Fondo oscuro fijo para consistencia
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.1),
-            offset: Offset(0, -2),
+            color: Colors.black.withOpacity(0.2),
+            offset: const Offset(0, -2),
             blurRadius: 8,
-            spreadRadius: 0,
           ),
         ],
       ),
       child: SafeArea(
         top: false,
         child: Container(
-          height: 64,
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          height: 72, // AUMENTADO de 64 a 72 para evitar overflow
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 4,
+          ), // MENOS padding vertical
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: CustomBottomBarItem.values.map((item) {
               final isSelected = item == selectedItem;
-              final icon = _getIcon(item, isSelected);
-              final label = _getLabel(item);
-
               return Expanded(
                 child: _NavigationItem(
-                  icon: icon,
-                  label: label,
+                  icon: _getIcon(item, isSelected),
+                  label: _getLabel(item),
                   isSelected: isSelected,
                   showLabel: showLabels,
                   onTap: () => _handleItemTap(context, item),
-                  selectedColor: colorScheme.primary,
-                  unselectedColor: colorScheme.onSurfaceVariant,
+                  selectedColor: const Color(0xFF6366F1),
+                  unselectedColor: const Color(0xFF94A3B8),
                 ),
               );
             }).toList(),
@@ -143,7 +113,6 @@ class CustomBottomBar extends StatelessWidget {
   }
 }
 
-/// Individual navigation item widget
 class _NavigationItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -166,7 +135,6 @@ class _NavigationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final color = isSelected ? selectedColor : unselectedColor;
 
     return Material(
@@ -174,43 +142,33 @@ class _NavigationItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        splashColor: selectedColor.withValues(alpha: 0.1),
-        highlightColor: selectedColor.withValues(alpha: 0.05),
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          // REDUCIDO: Padding vertical ajustado para que quepa todo
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icon with scale animation
               AnimatedScale(
                 scale: isSelected ? 1.1 : 1.0,
-                duration: Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                child: Icon(
-                  icon,
-                  size: 24,
-                  color: color,
-                ),
+                duration: const Duration(milliseconds: 200),
+                child: Icon(icon, size: 26, color: color),
               ),
-
-              // Label with fade animation
               if (showLabel) ...[
-                SizedBox(height: 4),
-                AnimatedDefaultTextStyle(
-                  duration: Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  style: theme.textTheme.labelSmall!.copyWith(
-                    color: color,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    fontSize: 11,
-                    height: 1.0,
-                  ),
+                const SizedBox(height: 4),
+                Flexible(
+                  // Flexible evita el error de overflow si el texto es grande
                   child: Text(
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
               ],

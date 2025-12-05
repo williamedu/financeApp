@@ -16,7 +16,7 @@ class ProfileToggleItemWidget extends StatelessWidget {
   final Color? iconColor;
 
   const ProfileToggleItemWidget({
-    Key? key,
+    super.key,
     required this.iconName,
     required this.title,
     this.subtitle,
@@ -24,7 +24,7 @@ class ProfileToggleItemWidget extends StatelessWidget {
     required this.onChanged,
     this.showDivider = true,
     this.iconColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

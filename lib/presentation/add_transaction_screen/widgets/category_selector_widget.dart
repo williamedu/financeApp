@@ -11,11 +11,11 @@ class CategorySelectorWidget extends StatelessWidget {
   final VoidCallback onAddCategory;
 
   const CategorySelectorWidget({
-    Key? key,
+    super.key,
     required this.selectedCategory,
     required this.onCategorySelected,
     required this.onAddCategory,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -123,13 +123,13 @@ class _CategoryChip extends StatelessWidget {
   final VoidCallback onTap;
 
   const _CategoryChip({
-    Key? key,
+    super.key,
     required this.name,
     required this.icon,
     required this.color,
     required this.isSelected,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -175,8 +175,9 @@ class _CategoryChip extends StatelessWidget {
               Text(
                 name,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color:
-                      isSelected ? color : theme.colorScheme.onSurfaceVariant,
+                  color: isSelected
+                      ? color
+                      : theme.colorScheme.onSurfaceVariant,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
                 textAlign: TextAlign.center,
@@ -195,10 +196,7 @@ class _CategoryChip extends StatelessWidget {
 class _AddCategoryChip extends StatelessWidget {
   final VoidCallback onTap;
 
-  const _AddCategoryChip({
-    Key? key,
-    required this.onTap,
-  }) : super(key: key);
+  const _AddCategoryChip({super.key, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

@@ -1,458 +1,344 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/app_export.dart';
+import '../../services/auth_service.dart';
+import '../../services/firestore_service.dart';
 import '../../widgets/custom_bottom_bar.dart';
+
 import './widgets/category_filter_chips_widget.dart';
 import './widgets/empty_state_widget.dart';
 import './widgets/financial_summary_card_widget.dart';
 import './widgets/transaction_card_widget.dart';
 
-/// Home Dashboard Screen - Primary financial overview screen
 class HomeDashboardScreen extends StatefulWidget {
-  const HomeDashboardScreen({Key? key}) : super(key: key);
+  const HomeDashboardScreen({super.key}); // <--- Forma moderna y limpia
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
 }
 
 class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
+  final AuthService _authService = AuthService();
+  final FirestoreService _firestoreService = FirestoreService();
+
   CustomBottomBarItem _selectedBottomBarItem = CustomBottomBarItem.home;
-  String _selectedCategory = 'Todos';
-  bool _isLoading = false;
 
-  // Mock user data
-  final String _userName = 'María González';
-  final double _availableAmount = 2450.75;
+  // CORRECCIÓN: Iniciar en 'Transacciones' para coincidir con los botones
+  String _selectedCategory = 'Transacciones';
 
-  // Mock transactions data
-  final List<Map<String, dynamic>> _allTransactions = [
-    {
-      'id': 1,
-      'type': 'income',
-      'amount': 3500.00,
-      'category': 'Salario',
-      'description': 'Pago mensual',
-      'date': DateTime(2025, 12, 1),
-      'icon': 'account_balance_wallet',
-    },
-    {
-      'id': 2,
-      'type': 'expense',
-      'amount': 850.00,
-      'category': 'Alquiler',
-      'description': 'Renta departamento',
-      'date': DateTime(2025, 12, 2),
-      'icon': 'home',
-    },
-    {
-      'id': 3,
-      'type': 'expense',
-      'amount': 120.50,
-      'category': 'Supermercado',
-      'description': 'Compras semanales',
-      'date': DateTime(2025, 12, 3),
-      'icon': 'shopping_cart',
-    },
-    {
-      'id': 4,
-      'type': 'income',
-      'amount': 500.00,
-      'category': 'Freelance',
-      'description': 'Proyecto diseño web',
-      'date': DateTime(2025, 12, 3),
-      'icon': 'work',
-    },
-    {
-      'id': 5,
-      'type': 'expense',
-      'amount': 45.25,
-      'category': 'Transporte',
-      'description': 'Gasolina',
-      'date': DateTime(2025, 12, 4),
-      'icon': 'local_gas_station',
-    },
-    {
-      'id': 6,
-      'type': 'expense',
-      'amount': 80.00,
-      'category': 'Entretenimiento',
-      'description': 'Cine y cena',
-      'date': DateTime(2025, 12, 4),
-      'icon': 'movie',
-    },
-  ];
+  late Stream<Map<String, dynamic>> _userDataStream;
+  bool _streamInitialized = false;
 
-  List<Map<String, dynamic>> get _filteredTransactions {
-    if (_selectedCategory == 'Todos') {
-      return _allTransactions;
-    } else if (_selectedCategory == 'Ingresos') {
-      return _allTransactions
-          .where((t) => (t['type'] as String) == 'income')
-          .toList();
-    } else if (_selectedCategory == 'Gastos Fijos') {
-      return _allTransactions
-          .where((t) =>
-              (t['type'] as String) == 'expense' &&
-              ((t['category'] as String) == 'Alquiler' ||
-                  (t['category'] as String) == 'Servicios'))
-          .toList();
-    } else {
-      return _allTransactions
-          .where((t) =>
-              (t['type'] as String) == 'expense' &&
-              (t['category'] as String) != 'Alquiler' &&
-              (t['category'] as String) != 'Servicios')
-          .toList();
+  @override
+  void initState() {
+    super.initState();
+    final user = _authService.currentUser;
+    if (user != null) {
+      _userDataStream = _firestoreService.streamUserData(user.uid);
+      _streamInitialized = true;
     }
   }
 
-  Future<void> _handleRefresh() async {
-    HapticFeedback.lightImpact();
-    setState(() => _isLoading = true);
-
-    // Simulate network request
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() => _isLoading = false);
+  double calcularTotal(Map<String, Map<String, dynamic>> dataMap, String tipo) {
+    double total = 0;
+    dataMap.forEach((key, value) {
+      final valor = value[tipo];
+      if (valor is num) total += valor.toDouble();
+    });
+    return total;
   }
 
   void _handleCategorySelected(String category) {
     setState(() => _selectedCategory = category);
+    HapticFeedback.selectionClick();
   }
 
   void _handleAddTransaction() {
     Navigator.pushNamed(context, '/add-transaction-screen');
   }
 
-  void _handleEditTransaction(Map<String, dynamic> transaction) {
-    // Navigate to edit screen with transaction data
-    Navigator.pushNamed(
-      context,
-      '/add-transaction-screen',
-      arguments: transaction,
-    );
-  }
+  // Lógica de Filtrado
+  List<Map<String, dynamic>> _filtrarTransacciones(
+    List<Map<String, dynamic>> todas,
+    String filtro,
+  ) {
+    if (filtro == 'Transacciones') {
+      return todas;
+    }
 
-  void _handleDeleteTransaction(Map<String, dynamic> transaction) {
-    HapticFeedback.mediumImpact();
+    return todas.where((t) {
+      final type = (t['type'] as String? ?? '').toLowerCase();
+      final isFixed = t['isFixed'] == true;
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar transacción'),
-        content: const Text(
-            '¿Estás seguro de que deseas eliminar esta transacción?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _allTransactions
-                    .removeWhere((t) => t['id'] == transaction['id']);
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Transacción eliminada')),
-              );
-            },
-            child: Text(
-              'Eliminar',
-              style: TextStyle(color: AppTheme.expenseRed),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handleDuplicateTransaction(Map<String, dynamic> transaction) {
-    HapticFeedback.lightImpact();
-
-    final newTransaction = Map<String, dynamic>.from(transaction);
-    newTransaction['id'] = _allTransactions.length + 1;
-    newTransaction['date'] = DateTime.now();
-
-    setState(() {
-      _allTransactions.insert(0, newTransaction);
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Transacción duplicada')),
-    );
-  }
-
-  void _handleTransactionTap(Map<String, dynamic> transaction) {
-    // Navigate to transaction details
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildTransactionDetailsSheet(transaction),
-    );
-  }
-
-  Widget _buildTransactionDetailsSheet(Map<String, dynamic> transaction) {
-    final theme = Theme.of(context);
-    final isIncome = (transaction['type'] as String) == 'income';
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.all(6.w),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 12.w,
-              height: 4,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.outline,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          SizedBox(height: 3.h),
-          Text(
-            'Detalles de transacción',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 3.h),
-          _buildDetailRow(
-            'Tipo',
-            isIncome ? 'Ingreso' : 'Gasto',
-            theme,
-            isIncome ? AppTheme.successGreen : AppTheme.expenseRed,
-          ),
-          _buildDetailRow(
-            'Monto',
-            '\$${(transaction['amount'] as double).toStringAsFixed(2).replaceAll('.', ',')}',
-            theme,
-            null,
-          ),
-          _buildDetailRow(
-            'Categoría',
-            transaction['category'] as String,
-            theme,
-            null,
-          ),
-          _buildDetailRow(
-            'Descripción',
-            transaction['description'] as String,
-            theme,
-            null,
-          ),
-          _buildDetailRow(
-            'Fecha',
-            '${(transaction['date'] as DateTime).day}/${(transaction['date'] as DateTime).month}/${(transaction['date'] as DateTime).year}',
-            theme,
-            null,
-          ),
-          SizedBox(height: 3.h),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _handleEditTransaction(transaction);
-                  },
-                  icon: CustomIconWidget(
-                    iconName: 'edit',
-                    color: theme.colorScheme.primary,
-                    size: 20,
-                  ),
-                  label: const Text('Editar'),
-                ),
-              ),
-              SizedBox(width: 3.w),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _handleDeleteTransaction(transaction);
-                  },
-                  icon: CustomIconWidget(
-                    iconName: 'delete',
-                    color: theme.colorScheme.onPrimary,
-                    size: 20,
-                  ),
-                  label: const Text('Eliminar'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.expenseRed,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(
-      String label, String value, ThemeData theme, Color? valueColor) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 2.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: valueColor ?? theme.colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
+      if (filtro == 'Ingresos') {
+        return type == 'income';
+      } else if (filtro == 'Gastos Fijos') {
+        return type == 'expense' && (isFixed == true);
+      } else if (filtro == 'Variables') {
+        return type == 'expense' && (isFixed != true);
+      }
+      return false;
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final user = _authService.currentUser;
+
+    if (!_streamInitialized || user == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0F172A),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: RefreshIndicator(
-        onRefresh: _handleRefresh,
-        color: theme.colorScheme.primary,
-        child: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              expandedHeight: 8.h,
-              floating: false,
-              pinned: true,
-              backgroundColor: theme.scaffoldBackgroundColor,
-              elevation: 0,
-              flexibleSpace: FlexibleSpaceBar(
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Hola, $_userName!',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                titlePadding: EdgeInsets.only(left: 4.w, bottom: 2.h),
+      backgroundColor: const Color(0xFF0F172A),
+      body: StreamBuilder<Map<String, dynamic>>(
+        stream: _userDataStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: const TextStyle(color: Colors.white),
               ),
-              actions: [
-                Padding(
-                  padding: EdgeInsets.only(right: 4.w),
-                  child: CircleAvatar(
-                    radius: 20,
-                    backgroundColor:
-                        theme.colorScheme.primary.withValues(alpha: 0.2),
-                    child: CustomIconWidget(
-                      iconName: 'person',
-                      color: theme.colorScheme.primary,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  FinancialSummaryCardWidget(
-                    userName: _userName,
-                    availableAmount: _availableAmount,
-                  ),
-                  Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-                    child: OutlinedButton.icon(
-                      onPressed: _handleAddTransaction,
-                      icon: CustomIconWidget(
-                        iconName: 'add',
-                        color: AppTheme.expenseRed,
-                        size: 24,
-                      ),
-                      label: const Text('Nueva Transacción'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.expenseRed,
-                        side: BorderSide(color: AppTheme.expenseRed, width: 2),
-                        padding: EdgeInsets.symmetric(vertical: 2.h),
-                        minimumSize: Size(double.infinity, 6.h),
-                      ),
-                    ),
-                  ),
-                  CategoryFilterChipsWidget(
-                    onCategorySelected: _handleCategorySelected,
-                  ),
-                  Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-                    child: Row(
+            );
+          }
+
+          final data = snapshot.data ?? {};
+
+          final ingresos =
+              data['ingresos'] as Map<String, Map<String, dynamic>>? ?? {};
+          final gastosFijos =
+              data['gastosFijos'] as Map<String, Map<String, dynamic>>? ?? {};
+          final gastosVariables =
+              data['gastosVariables'] as Map<String, Map<String, dynamic>>? ??
+              {};
+
+          // --- PROCESAMIENTO BLINDADO DE TRANSACCIONES ---
+          final List<dynamic> rawTransacciones =
+              data['transacciones'] as List<dynamic>? ?? [];
+
+          final List<Map<String, dynamic>>
+          todasLasTransacciones = rawTransacciones.map((item) {
+            final map = item as Map<String, dynamic>;
+
+            // Aquí evitamos el "Red Box" usando .toString() y valores por defecto
+            return {
+              'id': map['id'],
+              'amount': (map['amount'] ?? map['monto'] ?? 0).toDouble(),
+              'description':
+                  (map['description'] ?? map['concepto'] ?? 'Sin descripción')
+                      .toString(),
+              'category': (map['category'] ?? map['categoria'] ?? 'General')
+                  .toString(),
+              'date': map['date'] ?? map['fecha'] ?? DateTime.now(),
+              'type': (map['type'] ?? 'expense').toString(),
+              'icon': map['icon'],
+              'color': map['color'],
+              'isFixed': map['isFixed'] == true,
+            };
+          }).toList();
+
+          // Ordenar por fecha seguro
+          todasLasTransacciones.sort((a, b) {
+            dynamic dateA = a['date'];
+            dynamic dateB = b['date'];
+
+            DateTime dtA = DateTime.now();
+            DateTime dtB = DateTime.now();
+
+            // Manejo de Timestamp (Firebase) vs String (ISO8601) vs DateTime
+            if (dateA is Timestamp)
+              dtA = dateA.toDate();
+            else if (dateA is String)
+              dtA = DateTime.tryParse(dateA) ?? DateTime.now();
+            else if (dateA is DateTime)
+              dtA = dateA;
+
+            if (dateB is Timestamp)
+              dtB = dateB.toDate();
+            else if (dateB is String)
+              dtB = DateTime.tryParse(dateB) ?? DateTime.now();
+            else if (dateB is DateTime)
+              dtB = dateB;
+
+            return dtB.compareTo(dtA);
+          });
+
+          // Cálculos
+          double totalIngresos = calcularTotal(ingresos, 'actual');
+          double totalFijos = calcularTotal(gastosFijos, 'actual');
+          double totalVariables = calcularTotal(gastosVariables, 'actual');
+
+          double gastado = totalFijos + totalVariables;
+          double disponible = totalIngresos - gastado;
+
+          final transaccionesFiltradas = _filtrarTransacciones(
+            todasLasTransacciones,
+            _selectedCategory,
+          );
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              await Future.delayed(const Duration(milliseconds: 500));
+              setState(() {});
+            },
+            color: const Color(0xFF6366F1),
+            backgroundColor: const Color(0xFF1E293B),
+            child: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 8.h,
+                  floating: false,
+                  pinned: true,
+                  backgroundColor: const Color(0xFF0F172A),
+                  elevation: 0,
+                  flexibleSpace: FlexibleSpaceBar(
+                    titlePadding: EdgeInsets.only(left: 4.w, bottom: 2.h),
+                    title: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Transacciones recientes',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.onSurface,
-                            fontWeight: FontWeight.w600,
+                          'Hola, ${user.displayName?.split(' ')[0] ?? 'Usuario'}!',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pushNamed(
-                              context, '/transaction-list-screen'),
-                          child: const Text('Ver todas'),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            _filteredTransactions.isEmpty
-                ? SliverFillRemaining(
-                    child: EmptyStateWidget(
-                      onAddTransaction: _handleAddTransaction,
+                  actions: [
+                    Padding(
+                      padding: EdgeInsets.only(right: 4.w),
+                      child: GestureDetector(
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          '/user-profile-screen',
+                        ),
+                        child: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: const Color(
+                            0xFF6366F1,
+                          ).withOpacity(0.2),
+                          child: const Icon(
+                            Icons.person,
+                            color: Color(0xFF6366F1),
+                          ),
+                        ),
+                      ),
                     ),
-                  )
-                : SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final transaction = _filteredTransactions[index];
-                        return TransactionCardWidget(
-                          transaction: transaction,
-                          onEdit: () => _handleEditTransaction(transaction),
-                          onDelete: () => _handleDeleteTransaction(transaction),
-                          onDuplicate: () =>
-                              _handleDuplicateTransaction(transaction),
-                          onTap: () => _handleTransactionTap(transaction),
-                        );
-                      },
-                      childCount: _filteredTransactions.length,
-                    ),
+                  ],
+                ),
+
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      FinancialSummaryCardWidget(
+                        totalIngresos: totalIngresos,
+                        gastadoHastaAhora: gastado,
+                        disponibleGastar: disponible,
+                      ),
+
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 4.w,
+                          vertical: 2.h,
+                        ),
+                        child: OutlinedButton.icon(
+                          onPressed: _handleAddTransaction,
+                          icon: const Icon(Icons.add, color: Color(0xFFEF4444)),
+                          label: const Text('Nueva Transacción'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFEF4444),
+                            side: const BorderSide(
+                              color: Color(0xFFEF4444),
+                              width: 1.5,
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: 1.8.h),
+                            minimumSize: Size(double.infinity, 6.h),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      CategoryFilterChipsWidget(
+                        onCategorySelected: _handleCategorySelected,
+                      ),
+
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 4.w,
+                          vertical: 1.h,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _selectedCategory,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '${transaccionesFiltradas.length} items',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 10.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-            SliverToBoxAdapter(
-              child: SizedBox(height: 10.h),
+                ),
+
+                transaccionesFiltradas.isEmpty
+                    ? SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: EmptyStateWidget(
+                          onAddTransaction: _handleAddTransaction,
+                        ),
+                      )
+                    : SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final transaction = transaccionesFiltradas[index];
+                          return TransactionCardWidget(
+                            transaction: transaction,
+                            onEdit: () => Navigator.pushNamed(
+                              context,
+                              '/add-transaction-screen',
+                              arguments: transaction,
+                            ),
+                            onDelete: () {},
+                            onDuplicate: () {},
+                            onTap: () {},
+                          );
+                        }, childCount: transaccionesFiltradas.length),
+                      ),
+                SliverToBoxAdapter(child: SizedBox(height: 10.h)),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
       bottomNavigationBar: CustomBottomBar(
         selectedItem: _selectedBottomBarItem,
@@ -462,11 +348,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _handleAddTransaction,
-        child: CustomIconWidget(
-          iconName: 'add',
-          color: theme.colorScheme.onPrimary,
-          size: 28,
-        ),
+        backgroundColor: const Color(0xFF6366F1),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

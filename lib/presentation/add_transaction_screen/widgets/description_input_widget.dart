@@ -10,10 +10,10 @@ class DescriptionInputWidget extends StatelessWidget {
   final VoidCallback onVoiceInput;
 
   const DescriptionInputWidget({
-    Key? key,
+    super.key,
     required this.controller,
     required this.onVoiceInput,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

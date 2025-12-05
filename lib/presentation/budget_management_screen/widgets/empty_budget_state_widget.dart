@@ -8,10 +8,7 @@ import '../../../widgets/custom_icon_widget.dart';
 class EmptyBudgetStateWidget extends StatelessWidget {
   final VoidCallback onCreateBudget;
 
-  const EmptyBudgetStateWidget({
-    Key? key,
-    required this.onCreateBudget,
-  }) : super(key: key);
+  const EmptyBudgetStateWidget({super.key, required this.onCreateBudget});
 
   @override
   Widget build(BuildContext context) {
@@ -75,17 +72,9 @@ class EmptyBudgetStateWidget extends StatelessWidget {
               'Control total de gastos',
             ),
             SizedBox(height: 2.h),
-            _buildBenefitItem(
-              context,
-              'notifications',
-              'Alertas de límites',
-            ),
+            _buildBenefitItem(context, 'notifications', 'Alertas de límites'),
             SizedBox(height: 2.h),
-            _buildBenefitItem(
-              context,
-              'trending_up',
-              'Análisis de tendencias',
-            ),
+            _buildBenefitItem(context, 'trending_up', 'Análisis de tendencias'),
           ],
         ),
       ),

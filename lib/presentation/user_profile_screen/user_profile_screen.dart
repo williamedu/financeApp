@@ -13,7 +13,7 @@ import './widgets/profile_toggle_item_widget.dart';
 
 /// User Profile Screen for managing account settings, preferences, and app configuration
 class UserProfileScreen extends StatefulWidget {
-  const UserProfileScreen({Key? key}) : super(key: key);
+  const UserProfileScreen({super.key});
 
   @override
   State<UserProfileScreen> createState() => _UserProfileScreenState();
@@ -89,8 +89,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               width: 12.w,
               height: 0.5.h,
               decoration: BoxDecoration(
-                color:
-                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.3,
+                ),
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
@@ -228,19 +229,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           'label': 'Contraseña actual',
           'value': '',
           'key': 'current',
-          'obscure': true
+          'obscure': true,
         },
         {
           'label': 'Nueva contraseña',
           'value': '',
           'key': 'new',
-          'obscure': true
+          'obscure': true,
         },
         {
           'label': 'Confirmar contraseña',
           'value': '',
           'key': 'confirm',
-          'obscure': true
+          'obscure': true,
         },
       ],
       onSave: (values) {
@@ -305,14 +306,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         title: Text(
           'Exportar datos',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         content: Text(
           '¿Deseas exportar todos tus datos financieros? Se generará un archivo CSV con todas tus transacciones y presupuestos.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         actions: [
           TextButton(
@@ -347,14 +348,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         title: Text(
           'Restaurar datos',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         content: Text(
           '¿Deseas restaurar tus datos desde la última copia de seguridad? Esto sobrescribirá tus datos actuales.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         actions: [
           TextButton(
@@ -386,14 +387,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         title: Text(
           'Limpiar caché',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         content: Text(
           '¿Deseas limpiar el caché de la aplicación? Esto puede mejorar el rendimiento.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         actions: [
           TextButton(
@@ -445,9 +446,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         backgroundColor: Theme.of(context).colorScheme.surface,
         title: Text(
           'Eliminar cuenta',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppTheme.expenseRed,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(color: AppTheme.expenseRed),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -456,30 +457,30 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             Text(
               '¿Estás seguro de que deseas eliminar tu cuenta?',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             SizedBox(height: 2.h),
             Text(
               'Esta acción es permanente y no se puede deshacer. Se eliminarán todos tus datos:',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             SizedBox(height: 1.h),
             Text(
               '• Todas tus transacciones\n• Todos tus presupuestos\n• Tu información personal\n• Tus preferencias',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             SizedBox(height: 2.h),
             Text(
               'Te recomendamos exportar tus datos antes de continuar.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.warningOrange,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: AppTheme.warningOrange,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -511,15 +512,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         backgroundColor: Theme.of(context).colorScheme.surface,
         title: Text(
           'Confirmación final',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppTheme.expenseRed,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(color: AppTheme.expenseRed),
         ),
         content: Text(
           'Escribe "ELIMINAR" para confirmar la eliminación de tu cuenta.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         actions: [
           TextButton(
@@ -552,14 +553,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         title: Text(
           'Cerrar sesión',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         content: Text(
           '¿Estás seguro de que deseas cerrar sesión?',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         actions: [
           TextButton(
@@ -586,8 +587,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }) {
     final controllers = <String, TextEditingController>{};
     for (var field in fields) {
-      controllers[field['key']] =
-          TextEditingController(text: field['value'] as String);
+      controllers[field['key']] = TextEditingController(
+        text: field['value'] as String,
+      );
     }
 
     showDialog(
@@ -597,8 +599,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         title: Text(
           title,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -660,8 +662,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         title: Text(
           title,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -671,12 +673,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               title: Text(
                 option,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurface,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w400,
-                    ),
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                ),
               ),
               trailing: isSelected
                   ? CustomIconWidget(
@@ -712,8 +713,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               child: Text(
                 message,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ),
           ],
@@ -741,8 +742,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               child: Text(
                 message,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ),
           ],
@@ -770,8 +771,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               child: Text(
                 message,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ),
           ],
@@ -845,9 +846,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     value: _biometricEnabled,
                     onChanged: (value) {
                       setState(() => _biometricEnabled = value);
-                      _showSuccessMessage(value
-                          ? 'Biometría activada'
-                          : 'Biometría desactivada');
+                      _showSuccessMessage(
+                        value ? 'Biometría activada' : 'Biometría desactivada',
+                      );
                     },
                     showDivider: false,
                   ),
@@ -883,9 +884,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     value: _notificationsEnabled,
                     onChanged: (value) {
                       setState(() => _notificationsEnabled = value);
-                      _showSuccessMessage(value
-                          ? 'Notificaciones activadas'
-                          : 'Notificaciones desactivadas');
+                      _showSuccessMessage(
+                        value
+                            ? 'Notificaciones activadas'
+                            : 'Notificaciones desactivadas',
+                      );
                     },
                     showDivider: false,
                   ),
@@ -903,9 +906,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     value: _darkThemeEnabled,
                     onChanged: (value) {
                       setState(() => _darkThemeEnabled = value);
-                      _showSuccessMessage(value
-                          ? 'Tema oscuro activado'
-                          : 'Tema claro activado');
+                      _showSuccessMessage(
+                        value ? 'Tema oscuro activado' : 'Tema claro activado',
+                      );
                     },
                   ),
                   ProfileListItemWidget(

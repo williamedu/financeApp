@@ -31,11 +31,11 @@ class DefaultFirebaseOptions {
 
   // Configuración ANDROID (lo haremos después si quieres)
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'ANDROID_API_KEY',
-    appId: 'ANDROID_APP_ID',
-    messagingSenderId: 'MESSAGING_SENDER_ID',
-    projectId: 'PROJECT_ID',
-    storageBucket: 'PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyBdG9eJRJUWI2uq6ZS4zRe2uuD3o079Wak',
+    appId: '1:96687141554:android:2b0e9ddb6d0c0300404fab',
+    messagingSenderId: '96687141554',
+    projectId: 'financeflow-72f8d',
+    storageBucket: 'financeflow-72f8d.appspot.com',
   );
 
   // Configuración iOS (lo haremos después si quieres)

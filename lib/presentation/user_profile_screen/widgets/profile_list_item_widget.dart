@@ -16,7 +16,7 @@ class ProfileListItemWidget extends StatelessWidget {
   final bool isDangerous;
 
   const ProfileListItemWidget({
-    Key? key,
+    super.key,
     required this.iconName,
     required this.title,
     this.subtitle,
@@ -25,7 +25,7 @@ class ProfileListItemWidget extends StatelessWidget {
     this.showDivider = true,
     this.iconColor,
     this.isDangerous = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +33,9 @@ class ProfileListItemWidget extends StatelessWidget {
     final effectiveIconColor = isDangerous
         ? AppTheme.expenseRed
         : (iconColor ?? theme.colorScheme.primary);
-    final effectiveTitleColor =
-        isDangerous ? AppTheme.expenseRed : theme.colorScheme.onSurface;
+    final effectiveTitleColor = isDangerous
+        ? AppTheme.expenseRed
+        : theme.colorScheme.onSurface;
 
     return Column(
       children: [

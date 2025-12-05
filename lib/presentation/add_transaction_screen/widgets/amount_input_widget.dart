@@ -12,11 +12,11 @@ class AmountInputWidget extends StatelessWidget {
   final Function(bool) onTypeChanged;
 
   const AmountInputWidget({
-    Key? key,
+    super.key,
     required this.controller,
     required this.isIncome,
     required this.onTypeChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,10 +27,7 @@ class AmountInputWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outline,
-          width: 1,
-        ),
+        border: Border.all(color: theme.colorScheme.outline, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +83,8 @@ class AmountInputWidget extends StatelessWidget {
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d+\.?\d{0,2}')),
+                      RegExp(r'^\d+\.?\d{0,2}'),
+                    ),
                   ],
                   style: theme.textTheme.displaySmall?.copyWith(
                     color: theme.colorScheme.onSurface,
@@ -95,8 +93,9 @@ class AmountInputWidget extends StatelessWidget {
                   decoration: InputDecoration(
                     hintText: '0.00',
                     hintStyle: theme.textTheme.displaySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.3),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.3,
+                      ),
                       fontWeight: FontWeight.w700,
                     ),
                     border: InputBorder.none,
@@ -123,12 +122,12 @@ class _TypeButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const _TypeButton({
-    Key? key,
+    super.key,
     required this.label,
     required this.isSelected,
     required this.color,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -142,8 +141,9 @@ class _TypeButton extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 1.5.h),
           decoration: BoxDecoration(
-            color:
-                isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
+            color: isSelected
+                ? color.withValues(alpha: 0.15)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected ? color : theme.colorScheme.outline,

@@ -11,12 +11,12 @@ class BudgetAlertCardWidget extends StatelessWidget {
   final VoidCallback onTap;
 
   const BudgetAlertCardWidget({
-    Key? key,
+    super.key,
     required this.categoryName,
     required this.message,
     required this.alertType,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   Color _getAlertColor(BuildContext context) {
     final theme = Theme.of(context);

@@ -15,7 +15,7 @@ class CustomTextFieldWidget extends StatefulWidget {
   final void Function(String)? onChanged;
 
   const CustomTextFieldWidget({
-    Key? key,
+    super.key,
     required this.controller,
     required this.label,
     required this.hint,
@@ -24,7 +24,7 @@ class CustomTextFieldWidget extends StatefulWidget {
     this.isPassword = false,
     this.validator,
     this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<CustomTextFieldWidget> createState() => _CustomTextFieldWidgetState();
@@ -128,17 +128,11 @@ class _CustomTextFieldWidgetState extends State<CustomTextFieldWidget> {
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: theme.colorScheme.error,
-                width: 1,
-              ),
+              borderSide: BorderSide(color: theme.colorScheme.error, width: 1),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: theme.colorScheme.error,
-                width: 2,
-              ),
+              borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
             ),
             errorText: _errorText,
             errorStyle: theme.textTheme.bodySmall?.copyWith(

@@ -751,7 +751,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               ),
               Switch(
                 value: _agregarAPresupuesto,
-                activeColor: const Color(0xFF6366F1),
+                activeThumbColor: const Color(0xFF6366F1),
                 onChanged: (val) {
                   setState(() {
                     _agregarAPresupuesto = val;

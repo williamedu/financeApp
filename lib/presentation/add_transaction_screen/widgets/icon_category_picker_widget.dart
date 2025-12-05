@@ -8,10 +8,7 @@ import '../../../theme/app_theme.dart';
 class IconCategoryPickerWidget extends StatefulWidget {
   final Function(String categoryId, IconData icon, Color color) onSelected;
 
-  const IconCategoryPickerWidget({
-    Key? key,
-    required this.onSelected,
-  }) : super(key: key);
+  const IconCategoryPickerWidget({super.key, required this.onSelected});
 
   @override
   State<IconCategoryPickerWidget> createState() =>
@@ -212,16 +209,17 @@ class _IconCategoryPickerWidgetState extends State<IconCategoryPickerWidget> {
               padding: EdgeInsets.symmetric(vertical: 2.h),
               itemCount: _categorizedIcons.keys.length,
               itemBuilder: (context, sectionIndex) {
-                final section =
-                    _categorizedIcons.keys.elementAt(sectionIndex);
+                final section = _categorizedIcons.keys.elementAt(sectionIndex);
                 final icons = _categorizedIcons[section]!;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 4.w,
+                        vertical: 1.h,
+                      ),
                       child: Text(
                         section,
                         style: theme.textTheme.titleMedium?.copyWith(
@@ -246,7 +244,7 @@ class _IconCategoryPickerWidgetState extends State<IconCategoryPickerWidget> {
                           final iconData = icons[index];
                           final isSelected =
                               _selectedIcon == iconData['icon'] &&
-                                  _selectedCategory == iconData['name'];
+                              _selectedCategory == iconData['name'];
 
                           return InkWell(
                             onTap: () {

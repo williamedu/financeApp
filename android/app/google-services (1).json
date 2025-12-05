@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "96687141554",
+    "project_id": "financeflow-72f8d",
+    "storage_bucket": "financeflow-72f8d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96687141554:android:2b0e9ddb6d0c0300404fab",
+        "android_client_info": {
+          "package_name": "com.example.finance_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "96687141554-1l10sar38435rft9mjt595amclj0vfga.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.finance_app",
+            "certificate_hash": "9c4176d69c3b0de0857a4bbc2bd102ed361112a2"
+          }
+        },
+        {
+          "client_id": "96687141554-hfkm5ctfkb2i7j0aiv8eqr2jd8b99hb7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdG9eJRJUWI2uq6ZS4zRe2uuD3o079Wak"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "96687141554-hfkm5ctfkb2i7j0aiv8eqr2jd8b99hb7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

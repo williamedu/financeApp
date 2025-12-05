@@ -50,7 +50,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onBackPressed;
 
   const CustomAppBar({
-    Key? key,
+    super.key,
     required this.title,
     this.subtitle,
     this.leading,
@@ -61,7 +61,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.elevation,
     this.showBottomBorder = false,
     this.onBackPressed,
-  }) : super(key: key);
+  });
 
   @override
   Size get preferredSize {
@@ -147,7 +147,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final colorScheme = theme.colorScheme;
 
     // Determine background color
-    final bgColor = backgroundColor ??
+    final bgColor =
+        backgroundColor ??
         (variant == CustomAppBarVariant.transparent
             ? Colors.transparent
             : colorScheme.surface);
@@ -161,10 +162,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           ? BoxDecoration(
               color: bgColor,
               border: Border(
-                bottom: BorderSide(
-                  color: colorScheme.outline,
-                  width: 1,
-                ),
+                bottom: BorderSide(color: colorScheme.outline, width: 1),
               ),
             )
           : BoxDecoration(color: bgColor),
@@ -228,7 +226,7 @@ class CustomSliverAppBar extends StatelessWidget {
   final VoidCallback? onBackPressed;
 
   const CustomSliverAppBar({
-    Key? key,
+    super.key,
     required this.title,
     this.subtitle,
     this.leading,
@@ -241,7 +239,7 @@ class CustomSliverAppBar extends StatelessWidget {
     this.snap = false,
     this.flexibleSpace,
     this.onBackPressed,
-  }) : super(key: key);
+  });
 
   /// Handle back button press with haptic feedback
   void _handleBackPress(BuildContext context) {
@@ -294,7 +292,8 @@ class CustomSliverAppBar extends StatelessWidget {
       floating: floating,
       pinned: pinned,
       snap: snap,
-      flexibleSpace: flexibleSpace ??
+      flexibleSpace:
+          flexibleSpace ??
           FlexibleSpaceBar(
             title: subtitle != null
                 ? Column(

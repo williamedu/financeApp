@@ -11,7 +11,7 @@ import './widgets/category_budget_card_widget.dart';
 import './widgets/empty_budget_state_widget.dart';
 
 class BudgetManagementScreen extends StatefulWidget {
-  const BudgetManagementScreen({Key? key}) : super(key: key);
+  const BudgetManagementScreen({super.key});
 
   @override
   State<BudgetManagementScreen> createState() => _BudgetManagementScreenState();
@@ -295,30 +295,25 @@ class _BudgetManagementScreenState extends State<BudgetManagementScreen> {
                       ),
                     ),
                     SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final alert =
-                              _budgetAlerts[index];
-                          return BudgetAlertCardWidget(
-                            categoryName: alert["categoryName"] as String,
-                            message: alert["message"] as String,
-                            alertType: alert["alertType"] as String,
-                            onTap: () {
-                              final budgetIndex = _categoryBudgets.indexWhere(
-                                (b) =>
-                                    (b)[
-                                        "categoryName"] ==
-                                    alert["categoryName"],
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final alert = _budgetAlerts[index];
+                        return BudgetAlertCardWidget(
+                          categoryName: alert["categoryName"] as String,
+                          message: alert["message"] as String,
+                          alertType: alert["alertType"] as String,
+                          onTap: () {
+                            final budgetIndex = _categoryBudgets.indexWhere(
+                              (b) =>
+                                  (b)["categoryName"] == alert["categoryName"],
+                            );
+                            if (budgetIndex != -1) {
+                              _showCategoryDetails(
+                                _categoryBudgets[budgetIndex],
                               );
-                              if (budgetIndex != -1) {
-                                _showCategoryDetails(
-                                    _categoryBudgets[budgetIndex]);
-                              }
-                            },
-                          );
-                        },
-                        childCount: _budgetAlerts.length,
-                      ),
+                            }
+                          },
+                        );
+                      }, childCount: _budgetAlerts.length),
                     ),
                   ],
                   // Category budgets section
@@ -335,23 +330,19 @@ class _BudgetManagementScreenState extends State<BudgetManagementScreen> {
                     ),
                   ),
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final budget =
-                            _categoryBudgets[index];
-                        return CategoryBudgetCardWidget(
-                          categoryName: budget["categoryName"] as String,
-                          categoryIcon: budget["categoryIcon"] as String,
-                          categoryColor: Color(budget["categoryColor"] as int),
-                          allocatedAmount: budget["allocatedAmount"] as double,
-                          spentAmount: budget["spentAmount"] as double,
-                          onTap: () => _showCategoryDetails(budget),
-                          onEdit: () => _showEditBudgetDialog(index),
-                          onDelete: () => _showDeleteConfirmation(index),
-                        );
-                      },
-                      childCount: _categoryBudgets.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final budget = _categoryBudgets[index];
+                      return CategoryBudgetCardWidget(
+                        categoryName: budget["categoryName"] as String,
+                        categoryIcon: budget["categoryIcon"] as String,
+                        categoryColor: Color(budget["categoryColor"] as int),
+                        allocatedAmount: budget["allocatedAmount"] as double,
+                        spentAmount: budget["spentAmount"] as double,
+                        onTap: () => _showCategoryDetails(budget),
+                        onEdit: () => _showEditBudgetDialog(index),
+                        onDelete: () => _showDeleteConfirmation(index),
+                      );
+                    }, childCount: _categoryBudgets.length),
                   ),
                   SliverToBoxAdapter(child: SizedBox(height: 10.h)),
                 ],
@@ -610,8 +601,9 @@ class _CategoryDetailsSheet extends StatelessWidget {
                   width: 15.w,
                   height: 15.w,
                   decoration: BoxDecoration(
-                    color: Color(budget["categoryColor"] as int)
-                        .withValues(alpha: 0.2),
+                    color: Color(
+                      budget["categoryColor"] as int,
+                    ).withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Center(

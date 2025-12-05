@@ -7,10 +7,7 @@ import '../../../widgets/custom_icon_widget.dart';
 class AppLogoWidget extends StatelessWidget {
   final double size;
 
-  const AppLogoWidget({
-    Key? key,
-    this.size = 80,
-  }) : super(key: key);
+  const AppLogoWidget({super.key, this.size = 80});
 
   @override
   Widget build(BuildContext context) {
@@ -21,10 +18,7 @@ class AppLogoWidget extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.secondary,
-          ],
+          colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

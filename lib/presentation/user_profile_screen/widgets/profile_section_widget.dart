@@ -7,10 +7,10 @@ class ProfileSectionWidget extends StatelessWidget {
   final List<Widget> children;
 
   const ProfileSectionWidget({
-    Key? key,
+    super.key,
     required this.title,
     required this.children,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,14 +34,9 @@ class ProfileSectionWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: theme.colorScheme.outline,
-              width: 1,
-            ),
+            border: Border.all(color: theme.colorScheme.outline, width: 1),
           ),
-          child: Column(
-            children: children,
-          ),
+          child: Column(children: children),
         ),
       ],
     );

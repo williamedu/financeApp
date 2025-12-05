@@ -11,12 +11,12 @@ class AdvancedOptionsWidget extends StatefulWidget {
   final Function(bool) onRecurringChanged;
 
   const AdvancedOptionsWidget({
-    Key? key,
+    super.key,
     required this.tagsController,
     required this.notesController,
     required this.isRecurring,
     required this.onRecurringChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<AdvancedOptionsWidget> createState() => _AdvancedOptionsWidgetState();
@@ -38,17 +38,11 @@ class _AdvancedOptionsWidgetState extends State<AdvancedOptionsWidget> {
             onTap: () => setState(() => _isExpanded = !_isExpanded),
             borderRadius: BorderRadius.circular(12),
             child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 4.w,
-                vertical: 2.h,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.colorScheme.outline,
-                  width: 1,
-                ),
+                border: Border.all(color: theme.colorScheme.outline, width: 1),
               ),
               child: Row(
                 children: [
@@ -96,10 +90,7 @@ class _AdvancedOptionsWidgetState extends State<AdvancedOptionsWidget> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline,
-          width: 1,
-        ),
+        border: Border.all(color: theme.colorScheme.outline, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,7 +223,7 @@ class _AdvancedOptionsWidgetState extends State<AdvancedOptionsWidget> {
               Switch(
                 value: widget.isRecurring,
                 onChanged: widget.onRecurringChanged,
-                activeColor: AppTheme.incomeGold,
+                activeThumbColor: AppTheme.incomeGold,
               ),
             ],
           ),
