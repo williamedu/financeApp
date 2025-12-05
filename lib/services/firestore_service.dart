@@ -104,13 +104,12 @@ class FirestoreService {
     }
   }
 
-  // --- ESCUCHAR DATOS (EL TRADUCTOR) ---
   Stream<Map<String, dynamic>> streamUserData(String uid) {
     final userRef = _firestore.collection('users').doc(uid);
 
     return userRef.snapshots().asyncExpand((userDoc) async* {
       try {
-        // Cargar colecciones auxiliares
+        // 1. Cargar colecciones auxiliares (Presupuestos)
         final ingresosDocs = await userRef.collection('ingresos').get();
         final fijosDocs = await userRef.collection('gastosFijos').get();
         final variablesDocs = await userRef.collection('gastosVariables').get();
@@ -119,9 +118,9 @@ class FirestoreService {
         Map<String, Map<String, dynamic>> ingresos = {};
         for (var doc in ingresosDocs.docs) {
           final data = doc.data();
-          ingresos[data['nombre']] = {
+          ingresos[data['nombre'] ?? 'Sin Nombre'] = {
             'actual': (data['actual'] ?? 0).toDouble(),
-            // ... otros campos
+            ...data,
           };
         }
 
@@ -129,9 +128,9 @@ class FirestoreService {
         Map<String, Map<String, dynamic>> gastosFijos = {};
         for (var doc in fijosDocs.docs) {
           final data = doc.data();
-          gastosFijos[data['nombre']] = {
+          gastosFijos[data['nombre'] ?? 'Sin Nombre'] = {
             'actual': (data['actual'] ?? 0).toDouble(),
-            // ... otros campos
+            ...data,
           };
         }
 
@@ -139,37 +138,41 @@ class FirestoreService {
         Map<String, Map<String, dynamic>> gastosVariables = {};
         for (var doc in variablesDocs.docs) {
           final data = doc.data();
-          gastosVariables[data['nombre']] = {
+          gastosVariables[data['nombre'] ?? 'Sin Nombre'] = {
             'actual': (data['actual'] ?? 0).toDouble(),
-            // ... otros campos
+            ...data,
           };
         }
 
-        // --- AQUÍ ESTÁ LA MAGIA DEL ARREGLO ---
+        // 2. Cargar Transacciones (SIN ORDERBY PARA EVITAR ERROR DE ÍNDICE)
         final transaccionesSnapshot = await userRef
             .collection('transacciones')
-            .orderBy('createdAt', descending: true)
-            .get();
+            .get(); // <--- Aquí quitamos el orderBy que causaba el fallo
 
         List<Map<String, dynamic>> transacciones = [];
         for (var doc in transaccionesSnapshot.docs) {
           final data = doc.data();
           transacciones.add({
             'id': doc.id,
-            // TRADUCCIÓN: De Español (BD) a Inglés (Widgets)
-            'amount': (data['monto'] ?? 0).toDouble(), // monto -> amount
+            // Traducción segura de datos (Español/Inglés)
+            'amount': (data['monto'] ?? data['amount'] ?? 0).toDouble(),
             'description':
-                data['concepto'] ?? 'Sin título', // concepto -> description
-            'category': data['categoria'] ?? 'General', // categoria -> category
-            'date': (data['fecha'] != null)
-                ? DateTime.parse(data['fecha'])
-                : DateTime.now(),
-            'type': data['type'] ?? 'expense', // type (nuevo)
+                (data['concepto'] ?? data['description'] ?? 'Sin descripción')
+                    .toString(),
+            'category': (data['categoria'] ?? data['category'] ?? 'General')
+                .toString(),
+            // Fecha segura
+            'date':
+                data['fecha'] ??
+                data['date'] ??
+                DateTime.now().toIso8601String(),
+            'type': (data['type'] ?? 'expense').toString(),
             'icon': data['icon'],
             'color': data['color'],
           });
         }
 
+        // Enviamos todo (El ordenamiento ya lo hace el Dashboard)
         yield {
           'ingresos': ingresos,
           'gastosFijos': gastosFijos,
@@ -177,8 +180,14 @@ class FirestoreService {
           'transacciones': transacciones,
         };
       } catch (e) {
-        print('Error en stream: $e');
-        yield {};
+        debugPrint('Error CRÍTICO en streamUserData: $e');
+        // Si falla, devolvemos vacío para que no explote la app, pero logueamos el error
+        yield {
+          'ingresos': <String, Map<String, dynamic>>{},
+          'gastosFijos': <String, Map<String, dynamic>>{},
+          'gastosVariables': <String, Map<String, dynamic>>{},
+          'transacciones': <Map<String, dynamic>>[],
+        };
       }
     });
   }
