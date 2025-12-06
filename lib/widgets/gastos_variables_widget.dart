@@ -113,12 +113,15 @@ class _GastosVariablesWidgetState extends State<GastosVariablesWidget> {
 
             if (user != null) {
               try {
-                await firestoreService.addGastoVariable(
+                // USAMOS EL NUEVO MÉTODO UNIFICADO
+                await firestoreService.addCategoriaPresupuesto(
                   uid: user.uid,
+                  tipo: 'variable', // Indicamos que es Variable
                   nombre: nombreFinal,
                   presupuestado: presupuestado,
-                  actual: actual,
+                  // Nota: En la nueva lógica el 'actual' inicia en 0 automáticamente
                 );
+                // ... resto de tu código de éxito/cerrar
 
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(

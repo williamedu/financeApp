@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:sizer/sizer.dart';
-
-import '../../../core/app_export.dart';
-import '../../../theme/app_theme.dart'; // Asegura la importación correcta del tema
+import 'package:intl/intl.dart';
 
 class TransactionCardWidget extends StatelessWidget {
   final Map<String, dynamic> transaction;
@@ -11,6 +9,7 @@ class TransactionCardWidget extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onDuplicate;
   final VoidCallback onTap;
+  final String currencySymbol; // Recibe la moneda
 
   const TransactionCardWidget({
     super.key,
@@ -19,20 +18,19 @@ class TransactionCardWidget extends StatelessWidget {
     required this.onDelete,
     required this.onDuplicate,
     required this.onTap,
+    this.currencySymbol = '\$', // Valor por defecto
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // Extracción de datos segura
+    // 1. Extracción segura de datos
     final isIncome = (transaction['type'] as String? ?? 'expense') == 'income';
     final amount = (transaction['amount'] as num? ?? 0).toDouble();
     final category = transaction['category'] as String? ?? 'General';
     final description =
         transaction['description'] as String? ?? 'Sin descripción';
 
-    // Manejo de fecha
+    // 2. Manejo de Fecha
     DateTime date = DateTime.now();
     if (transaction['date'] is DateTime) {
       date = transaction['date'];
@@ -40,17 +38,26 @@ class TransactionCardWidget extends StatelessWidget {
       date = DateTime.tryParse(transaction['date']) ?? DateTime.now();
     }
 
-    // --- CORRECCIÓN: MANEJO DE ICONOS Y COLORES ---
-    // Ahora leemos el 'codePoint' (int) y el valor del color (int)
+    // 3. Manejo de Icono y Color (Evita el error rojo)
     IconData iconData = Icons.category;
     if (transaction['icon'] is int) {
       iconData = IconData(transaction['icon'], fontFamily: 'MaterialIcons');
     }
 
-    Color iconColor = isIncome ? AppTheme.successGreen : AppTheme.expenseRed;
+    Color iconColor = isIncome
+        ? const Color(0xFF10B981)
+        : const Color(0xFFEF4444);
     if (transaction['color'] is int) {
       iconColor = Color(transaction['color']);
     }
+
+    // 4. Formato de Moneda
+    final locale = currencySymbol == '€' ? 'es_ES' : 'en_US';
+    final formatter = NumberFormat.currency(
+      locale: locale,
+      symbol: '$currencySymbol ',
+    );
+    final montoStr = formatter.format(amount);
 
     return Slidable(
       key: ValueKey(transaction['id']),
@@ -59,7 +66,7 @@ class TransactionCardWidget extends StatelessWidget {
         children: [
           SlidableAction(
             onPressed: (context) => onEdit(),
-            backgroundColor: const Color(0xFF3B82F6), // Azul interactivo
+            backgroundColor: const Color(0xFF3B82F6),
             foregroundColor: Colors.white,
             icon: Icons.edit,
             label: 'Editar',
@@ -67,7 +74,7 @@ class TransactionCardWidget extends StatelessWidget {
           ),
           SlidableAction(
             onPressed: (context) => onDelete(),
-            backgroundColor: const Color(0xFFEF4444), // Rojo
+            backgroundColor: const Color(0xFFEF4444),
             foregroundColor: Colors.white,
             icon: Icons.delete,
             label: 'Eliminar',
@@ -76,7 +83,7 @@ class TransactionCardWidget extends StatelessWidget {
         ],
       ),
       child: Card(
-        color: const Color(0xFF1E293B), // Fondo oscuro de tarjeta
+        color: const Color(0xFF1E293B),
         margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
@@ -95,13 +102,12 @@ class TransactionCardWidget extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    // Usamos el widget Icon nativo con los datos recuperados
                     child: Icon(iconData, color: iconColor, size: 24),
                   ),
                 ),
                 SizedBox(width: 3.w),
 
-                // Textos
+                // Textos (Descripción y Categoría)
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,9 +156,9 @@ class TransactionCardWidget extends StatelessWidget {
                 ),
                 SizedBox(width: 2.w),
 
-                // Monto
+                // Monto Formateado
                 Text(
-                  '${isIncome ? '+' : '-'}\$${amount.toStringAsFixed(2)}',
+                  '${isIncome ? '+' : ''}$montoStr',
                   style: TextStyle(
                     color: isIncome
                         ? const Color(0xFF10B981)

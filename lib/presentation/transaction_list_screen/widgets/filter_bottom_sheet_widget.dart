@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:sizer/sizer.dart';
 
-import '../../../core/app_export.dart';
-import '../../../widgets/custom_icon_widget.dart';
-
-/// Widget for displaying filter options in bottom sheet
 class FilterBottomSheetWidget extends StatefulWidget {
-  final Function(Map<String, dynamic>) onApplyFilters;
   final Map<String, dynamic> currentFilters;
+  final List<Map<String, dynamic>> availableCategories;
+  final List<Map<String, dynamic>>
+  allTransactions; // <--- NUEVO: Lista para contar
+  final Function(Map<String, dynamic>) onApplyFilters;
 
   const FilterBottomSheetWidget({
     super.key,
-    required this.onApplyFilters,
     required this.currentFilters,
+    required this.availableCategories,
+    required this.allTransactions, // <--- REQUERIDO
+    required this.onApplyFilters,
   });
 
   @override
@@ -20,312 +22,513 @@ class FilterBottomSheetWidget extends StatefulWidget {
 }
 
 class _FilterBottomSheetWidgetState extends State<FilterBottomSheetWidget> {
-  late Map<String, dynamic> _filters;
-  late RangeValues _amountRange;
-  late DateTime _startDate;
-  late DateTime _endDate;
+  // Filtros
+  String _selectedType = 'Todos';
+  String _selectedSort = 'Más reciente';
+  String _selectedDatePreset = 'Este Mes';
+  RangeValues _amountRange = const RangeValues(0, 100000);
+  List<String> _selectedCategories = [];
+
+  bool _showAllCategories = false;
+
+  final List<String> _datePresets = [
+    'Hoy',
+    'Ayer',
+    'Últimos 7 días',
+    'Últimos 15 días',
+    'Últimos 30 días',
+    'Este Mes',
+    'Mes Pasado',
+    'Este Año',
+    'Personalizado',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _filters = Map.from(widget.currentFilters);
-    _amountRange = RangeValues(
-      (_filters['minAmount'] as double?) ?? 0.0,
-      (_filters['maxAmount'] as double?) ?? 10000.0,
-    );
-    _startDate =
-        (_filters['startDate'] as DateTime?) ??
-        DateTime.now().subtract(Duration(days: 30));
-    _endDate = (_filters['endDate'] as DateTime?) ?? DateTime.now();
+    if (widget.currentFilters['type'] != null)
+      _selectedType = widget.currentFilters['type'];
+    if (widget.currentFilters['sort'] != null)
+      _selectedSort = widget.currentFilters['sort'];
+    if (widget.currentFilters['datePreset'] != null)
+      _selectedDatePreset = widget.currentFilters['datePreset'];
+    if (widget.currentFilters['categories'] != null)
+      _selectedCategories = List<String>.from(
+        widget.currentFilters['categories'],
+      );
+    if (widget.currentFilters['minAmount'] != null &&
+        widget.currentFilters['maxAmount'] != null) {
+      _amountRange = RangeValues(
+        widget.currentFilters['minAmount'],
+        widget.currentFilters['maxAmount'],
+      );
+    }
+  }
+
+  // --- LÓGICA DE CONTEO EN TIEMPO REAL ---
+  int get _filteredCount {
+    return widget.allTransactions.where((t) {
+      // 1. Tipo
+      if (_selectedType != 'Todos') {
+        final type = t['type'] == 'income' ? 'Ingreso' : 'Gasto';
+        if (type != _selectedType) return false;
+      }
+
+      // 2. Categorías
+      if (_selectedCategories.isNotEmpty) {
+        if (!_selectedCategories.contains(t['category'])) return false;
+      }
+
+      // 3. Monto
+      final amount = t['amount'] as double;
+      if (amount < _amountRange.start || amount > _amountRange.end)
+        return false;
+
+      // 4. Fechas (Misma lógica que en la lista)
+      if (_selectedDatePreset != 'Personalizado') {
+        // Ignoramos personalizado por ahora para el conteo rápido
+        final date = t['date'] as DateTime;
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final itemDate = DateTime(date.year, date.month, date.day);
+
+        switch (_selectedDatePreset) {
+          case 'Hoy':
+            if (itemDate != today) return false;
+            break;
+          case 'Ayer':
+            if (itemDate != today.subtract(const Duration(days: 1)))
+              return false;
+            break;
+          case 'Últimos 7 días':
+            if (date.isBefore(now.subtract(const Duration(days: 7))))
+              return false;
+            break;
+          case 'Últimos 15 días':
+            if (date.isBefore(now.subtract(const Duration(days: 15))))
+              return false;
+            break;
+          case 'Últimos 30 días':
+            if (date.isBefore(now.subtract(const Duration(days: 30))))
+              return false;
+            break;
+          case 'Este Mes':
+            if (date.month != now.month || date.year != now.year) return false;
+            break;
+          case 'Mes Pasado':
+            final lastMonth = DateTime(now.year, now.month - 1, 1);
+            if (date.month != lastMonth.month || date.year != lastMonth.year)
+              return false;
+            break;
+          case 'Este Año':
+            if (date.year != now.year) return false;
+            break;
+        }
+      }
+
+      return true;
+    }).length;
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final initialCategoryCount = 8;
+    final categoriesToShow = _showAllCategories
+        ? widget.availableCategories
+        : widget.availableCategories.take(initialCategoryCount).toList();
+
+    // Calculamos el número mágico
+    final count = _filteredCount;
 
     return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E293B),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              margin: EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.3,
+      child: Column(
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey[600],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Filtrar por',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            // Header
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Filtros',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.w600,
-                    ),
+                TextButton(
+                  onPressed: _resetFilters,
+                  child: const Text(
+                    'Limpiar todo',
+                    style: TextStyle(color: Color(0xFF6366F1)),
                   ),
-                  TextButton(
-                    onPressed: _clearFilters,
-                    child: Text(
-                      'Limpiar',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: Color(0xFF3B82F6),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Divider(height: 1),
-            // Filter content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+
+          const Divider(color: Color(0xFF334155), height: 1),
+
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.all(5.w),
+              children: [
+                _buildSectionTitle('Tipo'),
+                Row(
                   children: [
-                    _buildDateRangeSection(theme),
-                    SizedBox(height: 24),
-                    _buildAmountRangeSection(theme),
-                    SizedBox(height: 24),
-                    _buildCategorySection(theme),
+                    _buildTypeChip('Todos'),
+                    SizedBox(width: 3.w),
+                    _buildTypeChip('Ingreso'),
+                    SizedBox(width: 3.w),
+                    _buildTypeChip('Gasto'),
                   ],
                 ),
-              ),
-            ),
-            // Apply button
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _applyFilters,
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 16),
+                SizedBox(height: 3.h),
+
+                _buildSectionTitle('Ordenar por'),
+                Wrap(
+                  spacing: 3.w,
+                  runSpacing: 1.5.h,
+                  children: [
+                    _buildSortChip('Más reciente'),
+                    _buildSortChip('Más antiguo'),
+                    _buildSortChip('Mayor monto'),
+                    _buildSortChip('Menor monto'),
+                  ],
+                ),
+                SizedBox(height: 3.h),
+
+                _buildSectionTitle('Fecha'),
+                Wrap(
+                  spacing: 2.w,
+                  runSpacing: 1.5.h,
+                  children: _datePresets
+                      .map((preset) => _buildDateChip(preset))
+                      .toList(),
+                ),
+                SizedBox(height: 3.h),
+
+                _buildSectionTitle('Categorías'),
+                if (widget.availableCategories.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text(
+                      "No hay categorías.",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                else
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          childAspectRatio: 0.75,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
+                    itemCount: categoriesToShow.length,
+                    itemBuilder: (context, index) {
+                      final cat = categoriesToShow[index];
+                      final isSelected = _selectedCategories.contains(
+                        cat['name'],
+                      );
+                      final Color catColor = cat['color'] != null
+                          ? Color(cat['color'])
+                          : Colors.blue;
+                      final IconData catIcon = cat['icon'] != null
+                          ? IconData(cat['icon'], fontFamily: 'MaterialIcons')
+                          : Icons.category;
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            if (isSelected)
+                              _selectedCategories.remove(cat['name']);
+                            else
+                              _selectedCategories.add(cat['name']);
+                          });
+                        },
+                        child: Column(
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? catColor.withOpacity(0.2)
+                                    : const Color(0xFF0F172A),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? catColor
+                                      : catColor.withOpacity(0.3),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Icon(
+                                catIcon,
+                                color: isSelected
+                                    ? catColor
+                                    : catColor.withOpacity(0.5),
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              cat['name'],
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : Colors.grey,
+                                fontSize: 10,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
-                  child: Text('Aplicar Filtros'),
+
+                if (widget.availableCategories.length > initialCategoryCount)
+                  TextButton(
+                    onPressed: () => setState(
+                      () => _showAllCategories = !_showAllCategories,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _showAllCategories
+                              ? 'Ver menos'
+                              : 'Ver todas (${widget.availableCategories.length})',
+                          style: const TextStyle(color: Color(0xFF6366F1)),
+                        ),
+                        Icon(
+                          _showAllCategories
+                              ? Icons.keyboard_arrow_up
+                              : Icons.keyboard_arrow_down,
+                          color: const Color(0xFF6366F1),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                SizedBox(height: 3.h),
+
+                _buildSectionTitle('Rango de Monto'),
+                RangeSlider(
+                  values: _amountRange,
+                  min: 0,
+                  max: 100000,
+                  divisions: 100,
+                  activeColor: const Color(0xFF6366F1),
+                  inactiveColor: const Color(0xFF334155),
+                  labels: RangeLabels(
+                    '\$${_amountRange.start.toStringAsFixed(0)}',
+                    '\$${_amountRange.end.toStringAsFixed(0)}',
+                  ),
+                  onChanged: (values) => setState(() => _amountRange = values),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '\$${_amountRange.start.toStringAsFixed(0)}',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                    Text(
+                      '\$${_amountRange.end.toStringAsFixed(0)}+',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 5.h),
+              ],
+            ),
+          ),
+
+          // BOTÓN MÁGICO CON CONTADOR
+          Container(
+            padding: EdgeInsets.all(5.w),
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: Color(0xFF334155))),
+              color: Color(0xFF1E293B),
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: count > 0
+                    ? _applyFilters
+                    : null, // Desactivar si es 0 (opcional)
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  disabledBackgroundColor: const Color(0xFF334155),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  count > 0 ? 'Ver ($count) Resultados' : 'Sin resultados',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: count > 0 ? Colors.white : Colors.grey,
+                  ),
                 ),
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ... (Widgets auxiliares _buildSectionTitle, _buildTypeChip, etc. se mantienen igual) ...
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDateRangeSection(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Rango de Fechas',
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
+  Widget _buildTypeChip(String label) {
+    final isSelected = _selectedType == label;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedType = label),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF6366F1)
+                : const Color(0xFF0F172A),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF6366F1)
+                  : const Color(0xFF334155),
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.grey,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-        SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _selectDate(context, true),
-                icon: CustomIconWidget(
-                  iconName: 'calendar_today',
-                  size: 18,
-                  color: theme.colorScheme.onSurface,
-                ),
-                label: Text(
-                  '${_startDate.day}/${_startDate.month}/${_startDate.year}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                '-',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _selectDate(context, false),
-                icon: CustomIconWidget(
-                  iconName: 'calendar_today',
-                  size: 18,
-                  color: theme.colorScheme.onSurface,
-                ),
-                label: Text(
-                  '${_endDate.day}/${_endDate.month}/${_endDate.year}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildAmountRangeSection(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Rango de Monto',
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
+  Widget _buildSortChip(String label) {
+    final isSelected = _selectedSort == label;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedSort = label),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF6366F1).withOpacity(0.2)
+              : const Color(0xFF0F172A),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF6366F1)
+                : const Color(0xFF334155),
           ),
         ),
-        SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '\$${_amountRange.start.toStringAsFixed(0)}',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-            Text(
-              '\$${_amountRange.end.toStringAsFixed(0)}',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-        RangeSlider(
-          values: _amountRange,
-          min: 0,
-          max: 10000,
-          divisions: 100,
-          onChanged: (values) {
-            setState(() {
-              _amountRange = values;
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategorySection(ThemeData theme) {
-    final categories = [
-      {'name': 'Ingreso', 'icon': 'trending_up'},
-      {'name': 'Comida', 'icon': 'restaurant'},
-      {'name': 'Transporte', 'icon': 'directions_car'},
-      {'name': 'Entretenimiento', 'icon': 'movie'},
-      {'name': 'Salud', 'icon': 'local_hospital'},
-      {'name': 'Compras', 'icon': 'shopping_bag'},
-    ];
-
-    final selectedCategories = (_filters['categories'] as List<String>?) ?? [];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Categorías',
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? const Color(0xFF6366F1) : Colors.grey,
           ),
         ),
-        SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: categories.map((category) {
-            final isSelected = selectedCategories.contains(category['name']);
-            return FilterChip(
-              selected: isSelected,
-              label: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CustomIconWidget(
-                    iconName: category['icon'] as String,
-                    size: 18,
-                    color: isSelected
-                        ? theme.colorScheme.onPrimary
-                        : theme.colorScheme.onSurface,
-                  ),
-                  SizedBox(width: 8),
-                  Text(category['name'] as String),
-                ],
-              ),
-              onSelected: (selected) {
-                setState(() {
-                  if (selected) {
-                    selectedCategories.add(category['name'] as String);
-                  } else {
-                    selectedCategories.remove(category['name']);
-                  }
-                  _filters['categories'] = selectedCategories;
-                });
-              },
-            );
-          }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildDateChip(String label) {
+    final isSelected = _selectedDatePreset == label;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedDatePreset = label),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF10B981).withOpacity(0.2)
+              : const Color(0xFF0F172A),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF10B981)
+                : const Color(0xFF334155),
+          ),
         ),
-      ],
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? const Color(0xFF10B981) : Colors.grey,
+            fontSize: 12,
+          ),
+        ),
+      ),
     );
   }
 
-  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: isStartDate ? _startDate : _endDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-
-    if (picked != null) {
-      setState(() {
-        if (isStartDate) {
-          _startDate = picked;
-        } else {
-          _endDate = picked;
-        }
-      });
-    }
-  }
-
-  void _clearFilters() {
+  void _resetFilters() {
     setState(() {
-      _filters = {};
-      _amountRange = RangeValues(0.0, 10000.0);
-      _startDate = DateTime.now().subtract(Duration(days: 30));
-      _endDate = DateTime.now();
+      _selectedType = 'Todos';
+      _selectedSort = 'Más reciente';
+      _selectedDatePreset = 'Este Mes';
+      _selectedCategories.clear();
+      _amountRange = const RangeValues(0, 100000);
     });
   }
 
   void _applyFilters() {
-    _filters['minAmount'] = _amountRange.start;
-    _filters['maxAmount'] = _amountRange.end;
-    _filters['startDate'] = _startDate;
-    _filters['endDate'] = _endDate;
-    widget.onApplyFilters(_filters);
+    final filters = {
+      'type': _selectedType,
+      'sort': _selectedSort,
+      'datePreset': _selectedDatePreset,
+      'categories': _selectedCategories,
+      'minAmount': _amountRange.start,
+      'maxAmount': _amountRange.end,
+    };
+    widget.onApplyFilters(filters);
     Navigator.pop(context);
   }
 }

@@ -12,9 +12,10 @@ import './widgets/category_filter_chips_widget.dart';
 import './widgets/empty_state_widget.dart';
 import './widgets/financial_summary_card_widget.dart';
 import './widgets/transaction_card_widget.dart';
+import './widgets/category_budget_card_widget.dart';
 
 class HomeDashboardScreen extends StatefulWidget {
-  const HomeDashboardScreen({super.key}); // <--- Forma moderna y limpia
+  const HomeDashboardScreen({super.key});
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -25,8 +26,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   final FirestoreService _firestoreService = FirestoreService();
 
   CustomBottomBarItem _selectedBottomBarItem = CustomBottomBarItem.home;
-
-  // CORRECCIÓN: Iniciar en 'Transacciones' para coincidir con los botones
   String _selectedCategory = 'Transacciones';
 
   late Stream<Map<String, dynamic>> _userDataStream;
@@ -42,10 +41,14 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     }
   }
 
-  double calcularTotal(Map<String, Map<String, dynamic>> dataMap, String tipo) {
+  // Calculadora Genérica
+  double calcularTotal(
+    Map<String, Map<String, dynamic>> dataMap,
+    String campo,
+  ) {
     double total = 0;
     dataMap.forEach((key, value) {
-      final valor = value[tipo];
+      final valor = value[campo];
       if (valor is num) total += valor.toDouble();
     });
     return total;
@@ -58,30 +61,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   void _handleAddTransaction() {
     Navigator.pushNamed(context, '/add-transaction-screen');
-  }
-
-  // Lógica de Filtrado
-  List<Map<String, dynamic>> _filtrarTransacciones(
-    List<Map<String, dynamic>> todas,
-    String filtro,
-  ) {
-    if (filtro == 'Transacciones') {
-      return todas;
-    }
-
-    return todas.where((t) {
-      final type = (t['type'] as String? ?? '').toLowerCase();
-      final isFixed = t['isFixed'] == true;
-
-      if (filtro == 'Ingresos') {
-        return type == 'income';
-      } else if (filtro == 'Gastos Fijos') {
-        return type == 'expense' && (isFixed == true);
-      } else if (filtro == 'Variables') {
-        return type == 'expense' && (isFixed != true);
-      }
-      return false;
-    }).toList();
   }
 
   @override
@@ -107,17 +86,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             );
           }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.white),
-              ),
-            );
-          }
-
           final data = snapshot.data ?? {};
 
+          // OBTENER LA MONEDA DE FIREBASE
+          final currency = data['currency'] as String? ?? '\$';
+
+          // Mapas de Datos
           final ingresos =
               data['ingresos'] as Map<String, Map<String, dynamic>>? ?? {};
           final gastosFijos =
@@ -126,69 +100,66 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               data['gastosVariables'] as Map<String, Map<String, dynamic>>? ??
               {};
 
-          // --- PROCESAMIENTO BLINDADO DE TRANSACCIONES ---
+          // Lista de Transacciones
           final List<dynamic> rawTransacciones =
               data['transacciones'] as List<dynamic>? ?? [];
-
-          final List<Map<String, dynamic>>
-          todasLasTransacciones = rawTransacciones.map((item) {
-            final map = item as Map<String, dynamic>;
-
-            // Aquí evitamos el "Red Box" usando .toString() y valores por defecto
-            return {
-              'id': map['id'],
-              'amount': (map['amount'] ?? map['monto'] ?? 0).toDouble(),
-              'description':
-                  (map['description'] ?? map['concepto'] ?? 'Sin descripción')
+          final List<Map<String, dynamic>> todasLasTransacciones =
+              rawTransacciones.map((item) {
+                final map = item as Map<String, dynamic>;
+                return {
+                  'id': map['id'],
+                  'amount': (map['amount'] ?? map['monto'] ?? 0).toDouble(),
+                  'description':
+                      (map['description'] ??
+                              map['concepto'] ??
+                              'Sin descripción')
+                          .toString(),
+                  'category': (map['category'] ?? map['categoria'] ?? 'General')
                       .toString(),
-              'category': (map['category'] ?? map['categoria'] ?? 'General')
-                  .toString(),
-              'date': map['date'] ?? map['fecha'] ?? DateTime.now(),
-              'type': (map['type'] ?? 'expense').toString(),
-              'icon': map['icon'],
-              'color': map['color'],
-              'isFixed': map['isFixed'] == true,
-            };
-          }).toList();
+                  'date': map['date'] ?? map['fecha'] ?? DateTime.now(),
+                  'type': (map['type'] ?? 'expense').toString(),
+                  'icon': map['icon'],
+                  'color': map['color'],
+                };
+              }).toList();
 
-          // Ordenar por fecha seguro
+          // Ordenar por fecha
           todasLasTransacciones.sort((a, b) {
             dynamic dateA = a['date'];
             dynamic dateB = b['date'];
+            DateTime dtA = DateTime.now(), dtB = DateTime.now();
 
-            DateTime dtA = DateTime.now();
-            DateTime dtB = DateTime.now();
-
-            // Manejo de Timestamp (Firebase) vs String (ISO8601) vs DateTime
             if (dateA is Timestamp)
               dtA = dateA.toDate();
             else if (dateA is String)
               dtA = DateTime.tryParse(dateA) ?? DateTime.now();
-            else if (dateA is DateTime)
-              dtA = dateA;
 
             if (dateB is Timestamp)
               dtB = dateB.toDate();
             else if (dateB is String)
               dtB = DateTime.tryParse(dateB) ?? DateTime.now();
-            else if (dateB is DateTime)
-              dtB = dateB;
 
             return dtB.compareTo(dtA);
           });
 
-          // Cálculos
+          // Cálculos Financieros
           double totalIngresos = calcularTotal(ingresos, 'actual');
-          double totalFijos = calcularTotal(gastosFijos, 'actual');
-          double totalVariables = calcularTotal(gastosVariables, 'actual');
-
-          double gastado = totalFijos + totalVariables;
-          double disponible = totalIngresos - gastado;
-
-          final transaccionesFiltradas = _filtrarTransacciones(
-            todasLasTransacciones,
-            _selectedCategory,
+          double gastadoRealFijos = calcularTotal(gastosFijos, 'actual');
+          double gastadoRealVariables = calcularTotal(
+            gastosVariables,
+            'actual',
           );
+          double gastadoTotal = gastadoRealFijos + gastadoRealVariables;
+          double disponible = totalIngresos - gastadoTotal;
+
+          // Filtrado
+          List<Map<String, dynamic>> transaccionesFiltradas = [];
+          if (_selectedCategory == 'Transacciones') {
+            transaccionesFiltradas = todasLasTransacciones;
+          } else {
+            // ... lógica de filtrado específica si la necesitas ...
+            // Por simplicidad, los tabs de Fijos/Variables no usan esta lista, usan los mapas
+          }
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -247,12 +218,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 SliverToBoxAdapter(
                   child: Column(
                     children: [
+                      // TARJETA DE RESUMEN CON MONEDA
                       FinancialSummaryCardWidget(
                         totalIngresos: totalIngresos,
-                        gastadoHastaAhora: gastado,
+                        gastadoHastaAhora: gastadoTotal,
                         disponibleGastar: disponible,
+                        currencySymbol: currency, // <--- Enviamos moneda
                       ),
 
+                      // Botón Nueva Acción
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 4.w,
@@ -260,12 +234,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         ),
                         child: OutlinedButton.icon(
                           onPressed: _handleAddTransaction,
-                          icon: const Icon(Icons.add, color: Color(0xFFEF4444)),
-                          label: const Text('Nueva Transacción'),
+                          icon: const Icon(
+                            Icons.add_circle_outline,
+                            color: Color(0xFF6366F1),
+                          ),
+                          label: const Text('Nueva Entrada'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFFEF4444),
+                            foregroundColor: const Color(0xFF6366F1),
                             side: const BorderSide(
-                              color: Color(0xFFEF4444),
+                              color: Color(0xFF6366F1),
                               width: 1.5,
                             ),
                             padding: EdgeInsets.symmetric(vertical: 1.8.h),
@@ -277,10 +254,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         ),
                       ),
 
+                      // Filtros (Tabs)
                       CategoryFilterChipsWidget(
                         onCategorySelected: _handleCategorySelected,
                       ),
 
+                      // Título
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 4.w,
@@ -290,18 +269,13 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              _selectedCategory,
+                              _selectedCategory == 'Transacciones'
+                                  ? 'Historial Reciente'
+                                  : 'Mis Presupuestos',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              '${transaccionesFiltradas.length} items',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 10.sp,
                               ),
                             ),
                           ],
@@ -311,29 +285,126 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   ),
                 ),
 
-                transaccionesFiltradas.isEmpty
-                    ? SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: EmptyStateWidget(
-                          onAddTransaction: _handleAddTransaction,
-                        ),
-                      )
-                    : SliverList(
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final transaction = transaccionesFiltradas[index];
-                          return TransactionCardWidget(
-                            transaction: transaction,
-                            onEdit: () => Navigator.pushNamed(
-                              context,
-                              '/add-transaction-screen',
-                              arguments: transaction,
+                // LISTA: TRANSACCIONES
+                if (_selectedCategory == 'Transacciones')
+                  todasLasTransacciones.isEmpty
+                      ? SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: EmptyStateWidget(
+                            onAddTransaction: _handleAddTransaction,
+                          ),
+                        )
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final transaction = todasLasTransacciones[index];
+                            return TransactionCardWidget(
+                              transaction: transaction,
+                              currencySymbol: currency, // <--- Enviamos moneda
+                              onEdit: () {},
+                              onDelete: () {},
+                              onDuplicate: () {},
+                              onTap: () {},
+                            );
+                          }, childCount: todasLasTransacciones.length),
+                        )
+                // LISTA: GASTOS FIJOS
+                else if (_selectedCategory == 'Gastos Fijos')
+                  gastosFijos.isEmpty
+                      ? const SliverToBoxAdapter(
+                          child: Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Text(
+                                "No hay gastos fijos",
+                                style: TextStyle(color: Colors.grey),
+                              ),
                             ),
-                            onDelete: () {},
-                            onDuplicate: () {},
-                            onTap: () {},
-                          );
-                        }, childCount: transaccionesFiltradas.length),
-                      ),
+                          ),
+                        )
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final key = gastosFijos.keys.elementAt(index);
+                            final item = gastosFijos[key]!;
+                            return CategoryBudgetCardWidget(
+                              name: item['nombre'] ?? key,
+                              budget: (item['presupuestado'] ?? 0).toDouble(),
+                              spent: (item['actual'] ?? 0).toDouble(),
+                              iconCode: item['icon'],
+                              colorValue: item['color'],
+                              currencySymbol: currency, // <--- Enviamos moneda
+                            );
+                          }, childCount: gastosFijos.length),
+                        )
+                // LISTA: GASTOS VARIABLES
+                else if (_selectedCategory == 'Variables')
+                  gastosVariables.isEmpty
+                      ? const SliverToBoxAdapter(
+                          child: Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Text(
+                                "No hay gastos variables",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                          ),
+                        )
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final key = gastosVariables.keys.elementAt(index);
+                            final item = gastosVariables[key]!;
+                            return CategoryBudgetCardWidget(
+                              name: item['nombre'] ?? key,
+                              budget: (item['presupuestado'] ?? 0).toDouble(),
+                              spent: (item['actual'] ?? 0).toDouble(),
+                              iconCode: item['icon'],
+                              colorValue: item['color'],
+                              currencySymbol: currency, // <--- Enviamos moneda
+                            );
+                          }, childCount: gastosVariables.length),
+                        )
+                // LISTA: INGRESOS
+                else if (_selectedCategory == 'Ingresos')
+                  ingresos.isEmpty
+                      ? const SliverToBoxAdapter(
+                          child: Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Text(
+                                "No hay ingresos",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                          ),
+                        )
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final key = ingresos.keys.elementAt(index);
+                            final item = ingresos[key]!;
+                            return CategoryBudgetCardWidget(
+                              name: item['nombre'] ?? key,
+                              budget: (item['estimado'] ?? 0).toDouble(),
+                              spent: (item['actual'] ?? 0).toDouble(),
+                              iconCode: item['icon'],
+                              colorValue: item['color'],
+                              isIncome: true,
+                              currencySymbol: currency, // <--- Enviamos moneda
+                            );
+                          }, childCount: ingresos.length),
+                        ),
+
                 SliverToBoxAdapter(child: SizedBox(height: 10.h)),
               ],
             ),
@@ -342,9 +413,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       ),
       bottomNavigationBar: CustomBottomBar(
         selectedItem: _selectedBottomBarItem,
-        onItemSelected: (item) {
-          setState(() => _selectedBottomBarItem = item);
-        },
+        onItemSelected: (item) => setState(() => _selectedBottomBarItem = item),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _handleAddTransaction,

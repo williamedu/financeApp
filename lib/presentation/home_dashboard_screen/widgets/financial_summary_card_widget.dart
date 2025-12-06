@@ -1,32 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import '../../../core/app_export.dart';
+import 'package:intl/intl.dart';
 
 class FinancialSummaryCardWidget extends StatelessWidget {
   final double totalIngresos;
   final double gastadoHastaAhora;
   final double disponibleGastar;
+  final String currencySymbol;
 
   const FinancialSummaryCardWidget({
-    Key? key,
+    super.key, // Esto ya se encarga de todo
     required this.totalIngresos,
     required this.gastadoHastaAhora,
     required this.disponibleGastar,
-  }) : super(key: key);
+    this.currencySymbol = '\$',
+  }); // <--- AQUÍ TERMINA, sin los dos puntos ni el super(...)
 
   @override
   Widget build(BuildContext context) {
-    // Definimos colores específicos para cada métrica
-    final colorIngresos = Colors.greenAccent[400]; // Verde brillante
-    final colorGastado = Colors.redAccent[200]; // Rojo suave
-    final colorDisponible = Colors.white; // Blanco (destacado)
+    final colorIngresos = Colors.greenAccent[400];
+    final colorGastado = Colors.redAccent[200];
+    final colorDisponible = Colors.white;
 
     return Container(
       width: double.infinity,
       margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
       padding: EdgeInsets.symmetric(vertical: 2.5.h, horizontal: 4.w),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B), // Fondo tarjeta oscuro (Slate 800)
+        color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -35,15 +36,11 @@ class FinancialSummaryCardWidget extends StatelessWidget {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(
-          color: const Color(0xFF334155), // Borde sutil
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFF334155), width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 1. INGRESOS
           _buildCompactMetric(
             context,
             label: 'Ingresos',
@@ -52,10 +49,8 @@ class FinancialSummaryCardWidget extends StatelessWidget {
             icon: Icons.arrow_upward_rounded,
           ),
 
-          // Divisor vertical
           Container(height: 4.h, width: 1, color: Colors.grey.withOpacity(0.3)),
 
-          // 2. GASTADO
           _buildCompactMetric(
             context,
             label: 'Gastado',
@@ -64,10 +59,8 @@ class FinancialSummaryCardWidget extends StatelessWidget {
             icon: Icons.arrow_downward_rounded,
           ),
 
-          // Divisor vertical
           Container(height: 4.h, width: 1, color: Colors.grey.withOpacity(0.3)),
 
-          // 3. DISPONIBLE (Más destacado)
           _buildCompactMetric(
             context,
             label: 'Disponible',
@@ -89,16 +82,17 @@ class FinancialSummaryCardWidget extends StatelessWidget {
     required IconData icon,
     bool isMain = false,
   }) {
-    // Formato de moneda simple (sin decimales .00 para ahorrar espacio si es entero)
-    String amountString = amount.toStringAsFixed(2).replaceAll('.', ',');
-    if (amountString.endsWith(",00")) {
-      amountString = amountString.substring(0, amountString.length - 3);
-    }
+    // CORRECCIÓN: Agregamos un espacio al símbolo '$currencySymbol '
+    final locale = currencySymbol == '€' ? 'es_ES' : 'en_US';
+    final formatter = NumberFormat.currency(
+      locale: locale,
+      symbol: '$currencySymbol ', // <--- EL ESPACIO MÁGICO AQUÍ
+    );
+    final amountString = formatter.format(amount);
 
     return Expanded(
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.center, // Centrado para diseño compacto
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -109,7 +103,7 @@ class FinancialSummaryCardWidget extends StatelessWidget {
                 label,
                 style: TextStyle(
                   color: Colors.grey[400],
-                  fontSize: 9.sp, // Letra pequeña para el título
+                  fontSize: 9.sp,
                   fontWeight: FontWeight.w500,
                 ),
                 maxLines: 1,
@@ -119,10 +113,10 @@ class FinancialSummaryCardWidget extends StatelessWidget {
           ),
           SizedBox(height: 0.5.h),
           Text(
-            '\$$amountString',
+            amountString,
             style: TextStyle(
               color: color,
-              fontSize: isMain ? 13.sp : 11.sp, // Disponible un poco más grande
+              fontSize: isMain ? 11.sp : 10.sp,
               fontWeight: FontWeight.bold,
             ),
             maxLines: 1,

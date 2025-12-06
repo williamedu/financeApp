@@ -110,12 +110,15 @@ class _GastosFijosWidgetState extends State<GastosFijosWidget> {
 
           if (user != null) {
             try {
-              await firestoreService.addGastoFijo(
+              // USAMOS EL NUEVO MÉTODO UNIFICADO
+              await firestoreService.addCategoriaPresupuesto(
                 uid: user.uid,
+                tipo: 'fixed', // Indicamos que es Fijo
                 nombre: nombreFinal,
                 presupuestado: presupuestado,
-                actual: actual,
+                // Nota: En la nueva lógica el 'actual' inicia en 0 automáticamente
               );
+              // ... resto de tu código de éxito/cerrar
 
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(

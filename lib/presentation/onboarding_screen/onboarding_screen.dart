@@ -4,12 +4,10 @@ import 'package:sizer/sizer.dart';
 import '../../theme/app_theme.dart';
 import '../../services/firestore_service.dart';
 import '../../routes/app_routes.dart';
-
-// IMPORTAMOS EL WIDGET UNIFICADO (Asegúrate que la ruta sea correcta)
 import '../add_transaction_screen/widgets/icon_category_picker_widget.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({Key? key}) : super(key: key);
+  const OnboardingScreen({super.key});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -25,12 +23,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   late String userName;
   bool _isInitialized = false;
 
-  // Datos recolectados
+  // ESTADO DE MONEDA
+  String _selectedCurrencyCode = 'DOP';
+  String _currencySymbol = 'RD\$';
+
+  final List<Map<String, String>> _currencies = [
+    {
+      'code': 'DOP',
+      'label': 'Peso Dominicano',
+      'symbol': 'RD\$',
+      'flag': '🇩🇴',
+    },
+    {
+      'code': 'USD',
+      'label': 'Dólar Estadounidense',
+      'symbol': '\$',
+      'flag': '🇺🇸',
+    },
+    {'code': 'EUR', 'label': 'Euro', 'symbol': '€', 'flag': '🇪🇺'},
+  ];
+
   Map<String, Map<String, dynamic>> ingresos = {};
   Map<String, Map<String, dynamic>> gastosFijos = {};
   Map<String, Map<String, dynamic>> gastosVariables = {};
 
-  // Controladores Custom
   final _customIncomeNameController = TextEditingController();
   final _customIncomeAmountController = TextEditingController();
   final _customFixedNameController = TextEditingController();
@@ -38,13 +54,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _customVariableNameController = TextEditingController();
   final _customVariableAmountController = TextEditingController();
 
-  // Iconos seleccionados (Defaults unificados)
   IconData _selectedIncomeIcon = Icons.attach_money_rounded;
   Color _selectedIncomeColor = const Color(0xFF10B981);
-
   IconData _selectedFixedIcon = Icons.home_rounded;
   Color _selectedFixedColor = const Color(0xFFF59E0B);
-
   IconData _selectedVariableIcon = Icons.shopping_cart_rounded;
   Color _selectedVariableColor = const Color(0xFF3B82F6);
 
@@ -79,6 +92,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         uid: userId,
         email: userEmail,
         displayName: userName,
+        currency: _selectedCurrencyCode, // Enviamos moneda
         ingresos: ingresos,
         gastosFijos: gastosFijos,
         gastosVariables: gastosVariables,
@@ -113,7 +127,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  // --- UNIFICACIÓN: Usar el mismo picker que en el Dashboard ---
   void _showUnifiedIconPicker(String tipo) {
     showModalBottomSheet(
       context: context,
@@ -141,7 +154,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Fondo oscuro unificado
+      backgroundColor: const Color(0xFF0F172A),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFF6366F1)),
@@ -226,19 +239,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  // PASO 0: BIENVENIDA
   Widget _buildWelcomeCard() {
     return Column(
       children: [
-        SizedBox(height: 4.h),
+        SizedBox(height: 3.h),
         Icon(
-          Icons.rocket_launch_rounded,
+          Icons.savings_rounded,
           color: const Color(0xFF6366F1),
-          size: 80.sp,
+          size: 70.sp,
         ),
-        SizedBox(height: 4.h),
+        SizedBox(height: 2.h),
         Text(
-          '¡Bienvenido a FinanceFlow!',
+          'Toma el Control Total',
           style: TextStyle(
             fontSize: 20.sp,
             fontWeight: FontWeight.bold,
@@ -248,29 +260,89 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ),
         SizedBox(height: 1.h),
         const Text(
-          'Configura tu presupuesto en 3 pasos simples.',
-          style: TextStyle(color: Colors.grey),
+          'Bienvenido a FinanceFlow. Antes de comenzar, personaliza tu experiencia eligiendo tu moneda local.',
+          style: TextStyle(color: Colors.grey, height: 1.5),
           textAlign: TextAlign.center,
         ),
+
+        SizedBox(height: 4.h),
+
+        // SELECTOR DE MONEDA CON BANDERA
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.5)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedCurrencyCode,
+              dropdownColor: const Color(0xFF1E293B),
+              isExpanded: true,
+              icon: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.white,
+              ),
+              items: _currencies.map((currency) {
+                return DropdownMenuItem(
+                  value: currency['code'],
+                  child: Row(
+                    children: [
+                      Text(
+                        currency['flag']!,
+                        style: TextStyle(fontSize: 20.sp),
+                      ),
+                      SizedBox(width: 3.w),
+                      Text(
+                        currency['code']!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(width: 2.w),
+                      Text(
+                        "- ${currency['label']}",
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    _selectedCurrencyCode = val;
+                    _currencySymbol = _currencies.firstWhere(
+                      (c) => c['code'] == val,
+                    )['symbol']!;
+                  });
+                }
+              },
+            ),
+          ),
+        ),
+
         SizedBox(height: 4.h),
         _buildFeatureRow(
-          Icons.arrow_upward,
-          'Ingresos',
-          'Tus fuentes de dinero',
+          Icons.account_balance,
+          '1. Define tus Ingresos',
+          'Salario, inversiones o negocios. La base de tu crecimiento.',
           const Color(0xFF10B981),
         ),
         SizedBox(height: 2.h),
         _buildFeatureRow(
-          Icons.lock_clock,
-          'Gastos Fijos',
-          'Lo que pagas cada mes',
+          Icons.lock_outline,
+          '2. Compromisos Fijos',
+          'Renta, servicios y deudas. Lo esencial para tu tranquilidad.',
           const Color(0xFFF59E0B),
         ),
         SizedBox(height: 2.h),
         _buildFeatureRow(
-          Icons.shopping_cart,
-          'Gastos Variables',
-          'Gastos del día a día',
+          Icons.pie_chart,
+          '3. Control Variable',
+          'Ocio, transporte y gustos. Optimiza tu estilo de vida.',
           const Color(0xFF3B82F6),
         ),
       ],
@@ -294,32 +366,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           Icon(icon, color: color, size: 24.sp),
           SizedBox(width: 4.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              Text(
-                desc,
-                style: TextStyle(fontSize: 10.sp, color: Colors.grey),
-              ),
-            ],
+                Text(
+                  desc,
+                  style: TextStyle(fontSize: 10.sp, color: Colors.grey),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  // --- SECCIONES DE FORMULARIO (INGRESOS, FIJOS, VARIABLES) ---
-
   Widget _buildIncomesCard() {
-    // Definimos categorías predeterminadas con colores/iconos bonitos
     final categorias = [
       {
         'nombre': 'Salario',
@@ -343,7 +414,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       },
     ];
     return _buildStepContent(
-      'Tus Ingresos',
+      'Fuentes de Ingreso',
+      'Identifica cuánto dinero entra a tu bolsillo mensualmente.',
       'income',
       categorias,
       ingresos,
@@ -379,6 +451,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ];
     return _buildStepContent(
       'Gastos Fijos',
+      'Pagos recurrentes que no puedes evadir (Renta, Luz, Internet).',
       'fixed',
       categorias,
       gastosFijos,
@@ -410,6 +483,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ];
     return _buildStepContent(
       'Gastos Variables',
+      'Gastos que fluctúan mes a mes. Aquí es donde puedes ahorrar.',
       'variable',
       categorias,
       gastosVariables,
@@ -422,6 +496,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _buildStepContent(
     String title,
+    String subtitle,
     String tipo,
     List<Map<String, dynamic>> defaults,
     Map<String, Map<String, dynamic>> dataMap,
@@ -436,14 +511,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         Text(
           title,
           style: TextStyle(
-            fontSize: 16.sp,
+            fontSize: 18.sp,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
-        SizedBox(height: 2.h),
+        SizedBox(height: 0.5.h),
+        Text(
+          subtitle,
+          style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+        ),
+        SizedBox(height: 3.h),
 
-        // 1. Grid de Categorías Rápidas
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -513,7 +592,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
         SizedBox(height: 3.h),
 
-        // 2. Formulario Custom (UNIFICADO CON PICKER)
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -533,7 +611,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               SizedBox(height: 2.h),
 
-              // Selector de Icono
               InkWell(
                 onTap: () => _showUnifiedIconPicker(tipo),
                 child: Container(
@@ -548,7 +625,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       Icon(customIcon, color: customColor),
                       const SizedBox(width: 10),
                       const Text(
-                        'Toca para cambiar icono/color',
+                        'Toca para cambiar icono',
                         style: TextStyle(color: Colors.white70),
                       ),
                     ],
@@ -557,18 +634,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
               SizedBox(height: 2.h),
 
-              // Inputs
               TextField(
                 controller: nameCtrl,
                 style: const TextStyle(color: Colors.white),
                 decoration: _inputDeco('Nombre (Ej: Netflix)', Icons.label),
               ),
               SizedBox(height: 1.5.h),
+
+              // INPUT MANUAL SIN FORMATEADOR
               TextField(
                 controller: amountCtrl,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDeco('Monto Mensual', Icons.attach_money),
+                decoration: _inputDeco(
+                  'Monto Mensual',
+                  Icons.attach_money,
+                  prefix: _currencySymbol,
+                ),
               ),
               SizedBox(height: 2.h),
 
@@ -580,16 +664,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     if (nameCtrl.text.isNotEmpty && monto > 0) {
                       setState(() {
                         dataMap[nameCtrl.text] = {
-                          'estimado': monto, // Ingresos
-                          'presupuestado': monto, // Gastos
-                          'actual': 0, // Inicia en 0 (CORRECCIÓN DISPONIBLE)
+                          'estimado': monto,
+                          'presupuestado': monto,
+                          'actual': tipo == 'income' ? monto : 0,
                           'icon': customIcon,
                           'color': customColor,
                         };
                       });
                       nameCtrl.clear();
                       amountCtrl.clear();
-                      // Resetear icono por defecto
                       if (tipo == 'income') {
                         _selectedIncomeIcon = Icons.attach_money;
                         _selectedIncomeColor = const Color(0xFF10B981);
@@ -610,7 +693,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
         SizedBox(height: 3.h),
 
-        // 3. Lista de Agregados
+        // Lista de Agregados
         if (dataMap.isNotEmpty) ...[
           const Text(
             'Resumen:',
@@ -619,6 +702,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           SizedBox(height: 1.h),
           ...dataMap.entries.map((e) {
             final val = e.value;
+            final esIngreso = tipo == 'income';
+            final montoMostrar = esIngreso
+                ? val['actual']
+                : val['presupuestado'];
+
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(12),
@@ -643,8 +731,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
+                  // MONTO SIMPLE SIN FORMATO ESPECIAL AQUÍ
                   Text(
-                    '\$${(val['estimado'] ?? val['presupuestado']).toStringAsFixed(0)}',
+                    '$_currencySymbol ${montoMostrar.toStringAsFixed(0)}',
                     style: TextStyle(
                       color: val['color'],
                       fontWeight: FontWeight.bold,
@@ -668,11 +757,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  InputDecoration _inputDeco(String label, IconData icon) {
+  InputDecoration _inputDeco(String label, IconData icon, {String? prefix}) {
     return InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(color: Colors.grey),
       prefixIcon: Icon(icon, color: Colors.grey),
+      prefixText: prefix != null ? '$prefix ' : null,
+      prefixStyle: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
       filled: true,
       fillColor: const Color(0xFF0F172A),
       border: OutlineInputBorder(
@@ -696,9 +790,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         title: Text(nombre, style: const TextStyle(color: Colors.white)),
         content: TextField(
           controller: controller,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           style: const TextStyle(color: Colors.white),
-          decoration: _inputDeco('Monto Mensual', Icons.attach_money),
+          decoration: _inputDeco(
+            'Monto Mensual',
+            Icons.attach_money,
+            prefix: _currencySymbol,
+          ),
         ),
         actions: [
           TextButton(
@@ -716,7 +814,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   map[nombre] = {
                     'estimado': monto,
                     'presupuestado': monto,
-                    'actual': 0, // SIEMPRE 0 INICIAL
+                    'actual': tipo == 'income' ? monto : 0,
                     'icon': icon,
                     'color': color,
                   };

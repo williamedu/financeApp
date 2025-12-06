@@ -1,79 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-/// Widget for displaying sticky date section headers
 class DateSectionHeaderWidget extends StatelessWidget {
   final DateTime date;
   final double totalAmount;
   final bool isIncome;
+  final String currencySymbol; // <--- ESTO FALTABA
 
   const DateSectionHeaderWidget({
     super.key,
     required this.date,
     required this.totalAmount,
     required this.isIncome,
+    this.currencySymbol = '\$', // Valor por defecto
   });
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(Duration(days: 1));
+    final yesterday = today.subtract(const Duration(days: 1));
     final dateOnly = DateTime(date.year, date.month, date.day);
 
-    if (dateOnly == today) {
-      return 'Hoy';
-    } else if (dateOnly == yesterday) {
-      return 'Ayer';
-    } else {
-      final months = [
-        'Enero',
-        'Febrero',
-        'Marzo',
-        'Abril',
-        'Mayo',
-        'Junio',
-        'Julio',
-        'Agosto',
-        'Septiembre',
-        'Octubre',
-        'Noviembre',
-        'Diciembre',
-      ];
-      return '${date.day} de ${months[date.month - 1]}';
-    }
+    if (dateOnly == today) return 'Hoy';
+    if (dateOnly == yesterday) return 'Ayer';
+    return DateFormat('d \'de\' MMMM', 'es_ES').format(date);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final locale = currencySymbol == '€' ? 'es_ES' : 'en_US';
+    final formatter = NumberFormat.currency(
+      locale: locale,
+      symbol: '$currencySymbol ',
+    );
+    final totalStr = formatter.format(totalAmount);
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: const Color(0xFF0F172A),
         border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.outline.withValues(alpha: 0.2),
-            width: 1,
-          ),
+          bottom: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
         ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // FECHA NORMAL
           Text(
             _formatDate(date),
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
+
+          // TOTAL DEL DÍA GRANDE (Tu petición)
           Text(
-            '\$${totalAmount.toStringAsFixed(2)}',
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: isIncome
-                  ? Color(0xFF10B981)
-                  : theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
+            totalStr,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18, // <--- GRANDE
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

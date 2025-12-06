@@ -1,3 +1,4 @@
+// (Imports igual que el anterior...)
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -7,7 +8,13 @@ import 'package:intl/intl.dart';
 import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
-import './widgets/icon_category_picker_widget.dart'; // Asegúrate de tener este widget del paso anterior
+import './widgets/icon_category_picker_widget.dart';
+
+// (Clase AddTransactionScreen y _AddTransactionScreenState IGUAL QUE ANTES)
+// Copia todo el archivo anterior de add_transaction_screen que te di,
+// pero en la función _buildTextField ELIMINA inputFormatters si existiera.
+// Como en el código anterior que te di ya NO tenía inputFormatters,
+// simplemente asegúrate de usar esa versión limpia.
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -21,18 +28,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
   late TabController _tabController;
   bool _isLoading = false;
 
-  // Servicios
   final AuthService _authService = AuthService();
   final FirestoreService _firestoreService = FirestoreService();
 
-  // Listas de categorías cargadas de Firebase
   List<String> _categoriasGastos = [];
   List<String> _categoriasIngresos = [];
 
   @override
   void initState() {
     super.initState();
-    // 4 Pestañas: Gasto (Transacción), Ingreso, Fijo, Variable
     _tabController = TabController(length: 4, vsync: this);
     _cargarCategorias();
   }
@@ -41,18 +45,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
     final user = _authService.currentUser;
     if (user != null) {
       final data = await _firestoreService.loadUserData(user.uid);
-      setState(() {
-        // Extraemos nombres de las llaves de los mapas
-        _categoriasIngresos = (data['ingresos'] as Map<String, dynamic>).keys
-            .toList();
-
-        // Unimos fijos y variables para la lista de gastos generales
-        final fijos = (data['gastosFijos'] as Map<String, dynamic>).keys
-            .toList();
-        final variables = (data['gastosVariables'] as Map<String, dynamic>).keys
-            .toList();
-        _categoriasGastos = [...fijos, ...variables];
-      });
+      if (mounted) {
+        setState(() {
+          _categoriasIngresos = (data['ingresos'] as Map<String, dynamic>).keys
+              .toList();
+          final fijos = (data['gastosFijos'] as Map<String, dynamic>).keys
+              .toList();
+          final variables = (data['gastosVariables'] as Map<String, dynamic>)
+              .keys
+              .toList();
+          _categoriasGastos = [...fijos, ...variables];
+        });
+      }
     }
   }
 
@@ -65,7 +69,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Fondo oscuro principal
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F172A),
         elevation: 0,
@@ -79,15 +83,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
         ),
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: true, // Permite scroll si la pantalla es pequeña
+          isScrollable: true,
           indicatorColor: const Color(0xFF6366F1),
           labelColor: const Color(0xFF6366F1),
           unselectedLabelColor: Colors.grey,
           tabs: const [
             Tab(text: 'Gasto', icon: Icon(Icons.receipt_long)),
             Tab(text: 'Ingreso', icon: Icon(Icons.arrow_upward)),
-            Tab(text: 'Fijo', icon: Icon(Icons.lock_outline)),
-            Tab(text: 'Variable', icon: Icon(Icons.insights)),
+            Tab(text: 'Fijo (Crear)', icon: Icon(Icons.lock_outline)),
+            Tab(text: 'Variable (Crear)', icon: Icon(Icons.insights)),
           ],
         ),
       ),
@@ -115,101 +119,73 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
     );
   }
 
-  // Lógica Centralizada de Guardado
   Future<void> _handleSave(Map<String, dynamic> data) async {
     setState(() => _isLoading = true);
     try {
       final user = _authService.currentUser;
       if (user == null) return;
 
-      final String formType =
-          data['formType']; // expense, income, fixed, variable
+      final String formType = data['formType'];
 
-      // 1. GASTO COMÚN (Transacción)
       if (formType == 'expense') {
+        if (data['isNewCategory'] == true) {
+          await _firestoreService.addCategoriaPresupuesto(
+            uid: user.uid,
+            tipo: data['expenseType'],
+            nombre: data['category'],
+            presupuestado: data['budget'],
+            iconCode: data['icon']?.codePoint,
+            colorValue: data['color']?.value,
+          );
+        }
         await _firestoreService.addTransaccion(
           uid: user.uid,
           categoria: data['category'],
           monto: data['amount'],
           concepto: data['description'],
           fecha: data['date'],
-          type: 'expense', // Clave para el Dashboard
+          type: 'expense',
           iconCode: data['icon']?.codePoint,
           colorValue: data['color']?.value,
         );
-        // Actualizar acumulado si existe
         await _firestoreService.updateCategoriaActual(
           uid: user.uid,
           categoria: data['category'],
           monto: data['amount'],
         );
-      }
-      // 2. INGRESO
-      else if (formType == 'income') {
-        // Si es nuevo, creamos la categoría de ingreso
+      } else if (formType == 'income') {
         if (data['isNewCategory'] == true) {
           await _firestoreService.addIngreso(
             uid: user.uid,
             nombre: data['category'],
-            estimado: data['amount'], // Asumimos estimado = primer monto
+            estimado: data['amount'],
             actual: data['amount'],
+            iconCode: data['icon']?.codePoint,
+            colorValue: data['color']?.value,
           );
         } else {
-          // Si ya existe, solo sumamos al actual (debes implementar updateIngresoActual si quieres, por ahora solo log)
+          await _firestoreService.updateCategoriaActual(
+            uid: user.uid,
+            categoria: data['category'],
+            monto: data['amount'],
+          );
         }
-
-        // Guardamos Log en Transacciones
         await _firestoreService.addTransaccion(
           uid: user.uid,
           categoria: data['category'],
           monto: data['amount'],
           concepto: data['description'],
           fecha: data['date'],
-          type: 'income', // Clave para el Dashboard
+          type: 'income',
           iconCode: data['icon']?.codePoint,
           colorValue: data['color']?.value,
         );
-      }
-      // 3. PRESUPUESTO FIJO
-      else if (formType == 'fixed') {
-        await _firestoreService.addGastoFijo(
+      } else if (formType == 'fixed' || formType == 'variable') {
+        await _firestoreService.addCategoriaPresupuesto(
           uid: user.uid,
+          tipo: formType,
           nombre: data['category'],
           presupuestado: data['budget'],
-          actual: data['amount'],
-          iconCode: data['icon']?.codePoint,
-          colorValue: data['color']?.value,
-        );
-        // Log en historial
-        await _firestoreService.addTransaccion(
-          uid: user.uid,
-          categoria: data['category'],
-          monto: data['amount'],
-          concepto: data['description'],
-          fecha: data['date'],
-          type: 'expense',
-          iconCode: data['icon']?.codePoint,
-          colorValue: data['color']?.value,
-        );
-      }
-      // 4. PRESUPUESTO VARIABLE
-      else if (formType == 'variable') {
-        await _firestoreService.addGastoVariable(
-          uid: user.uid,
-          nombre: data['category'],
-          presupuestado: data['budget'],
-          actual: data['amount'],
-          iconCode: data['icon']?.codePoint,
-          colorValue: data['color']?.value,
-        );
-        // Log en historial
-        await _firestoreService.addTransaccion(
-          uid: user.uid,
-          categoria: data['category'],
-          monto: data['amount'],
-          concepto: data['description'],
-          fecha: data['date'],
-          type: 'expense',
           iconCode: data['icon']?.codePoint,
           colorValue: data['color']?.value,
         );
@@ -232,11 +208,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
   }
 }
 
-// ---------------------------------------------------------------------------
-// FORMULARIO 1: TRANSACCIONES E INGRESOS (Con toggle Existente/Nuevo)
-// ---------------------------------------------------------------------------
 class _TransactionForm extends StatefulWidget {
-  final String type; // 'expense' or 'income'
+  final String type;
   final List<String> existingCategories;
   final Function(Map<String, dynamic>) onSave;
 
@@ -255,20 +228,20 @@ class _TransactionFormState extends State<_TransactionForm> {
   String? _selectedCategory;
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
+  final _budgetController = TextEditingController();
   final _descController = TextEditingController();
-
-  // Icono/Color por defecto
+  String _newExpenseType = 'variable';
   IconData _icon = Icons.category;
   Color _color = Colors.blue;
 
   @override
   Widget build(BuildContext context) {
+    final isExpense = widget.type == 'expense';
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(5.w),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Selector Existente vs Nuevo
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFF1E293B),
@@ -291,13 +264,7 @@ class _TransactionFormState extends State<_TransactionForm> {
           ),
           SizedBox(height: 3.h),
 
-          // 2. Selección de Categoría
           if (!_isNewCategory) ...[
-            const Text(
-              'Selecciona Categoría',
-              style: TextStyle(color: Colors.grey),
-            ),
-            SizedBox(height: 1.h),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
@@ -309,7 +276,7 @@ class _TransactionFormState extends State<_TransactionForm> {
                 child: DropdownButton<String>(
                   value: _selectedCategory,
                   hint: const Text(
-                    'Seleccionar...',
+                    'Seleccionar Categoría...',
                     style: TextStyle(color: Colors.white),
                   ),
                   dropdownColor: const Color(0xFF1E293B),
@@ -328,62 +295,101 @@ class _TransactionFormState extends State<_TransactionForm> {
               ),
             ),
           ] else ...[
-            // Crear Nueva Categoría
-            _buildTextField(
-              controller: _nameController,
-              label: 'Nombre de Categoría',
-              icon: Icons.label,
-            ),
+            _buildTextField(_nameController, 'Nombre Categoría', Icons.label),
             SizedBox(height: 2.h),
             _buildIconPicker(),
+
+            if (isExpense) ...[
+              SizedBox(height: 3.h),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF6366F1).withOpacity(0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Tipo de Gasto (Obligatorio)',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    SizedBox(height: 1.h),
+                    Row(
+                      children: [
+                        _buildRadioBtn('Variable', 'variable'),
+                        SizedBox(width: 4.w),
+                        _buildRadioBtn('Fijo', 'fixed'),
+                      ],
+                    ),
+                    SizedBox(height: 2.h),
+                    _buildTextField(
+                      _budgetController,
+                      'Presupuesto Mensual Estimado',
+                      Icons.calculate,
+                      isNumber: true,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
 
           SizedBox(height: 3.h),
 
-          // 3. Monto y Descripción
           _buildTextField(
-            controller: _amountController,
-            label: 'Monto (RD\$)',
-            icon: Icons.attach_money,
+            _amountController,
+            'Monto del Gasto (Hoy)',
+            Icons.attach_money,
             isNumber: true,
           ),
           SizedBox(height: 2.h),
           _buildTextField(
-            controller: _descController,
-            label: 'Descripción (Opcional)',
-            icon: Icons.description,
+            _descController,
+            'Descripción (Opcional)',
+            Icons.description,
           ),
-
           SizedBox(height: 4.h),
 
-          // 4. Botón Guardar
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
               onPressed: () {
-                // Validaciones
                 final amount = double.tryParse(_amountController.text);
                 if (amount == null) {
-                  Fluttertoast.showToast(msg: "Ingresa un monto válido");
+                  Fluttertoast.showToast(msg: "Monto inválido");
+                  return;
+                }
+                final category = _isNewCategory
+                    ? _nameController.text
+                    : _selectedCategory;
+                if (category == null || category.isEmpty) {
+                  Fluttertoast.showToast(msg: "Escribe un nombre de categoría");
                   return;
                 }
 
-                final categoryName = _isNewCategory
-                    ? _nameController.text
-                    : _selectedCategory;
-                if (categoryName == null || categoryName.isEmpty) {
-                  Fluttertoast.showToast(
-                    msg: "Selecciona o escribe una categoría",
-                  );
-                  return;
+                double? budget;
+                if (_isNewCategory && isExpense) {
+                  budget = double.tryParse(_budgetController.text);
+                  if (budget == null) {
+                    Fluttertoast.showToast(
+                      msg: "Define el presupuesto estimado",
+                    );
+                    return;
+                  }
                 }
 
                 widget.onSave({
                   'formType': widget.type,
                   'isNewCategory': _isNewCategory,
-                  'category': categoryName,
+                  'expenseType': _newExpenseType,
+                  'category': category,
                   'amount': amount,
+                  'budget': budget ?? 0.0,
                   'description': _descController.text.isEmpty
                       ? 'Sin descripción'
                       : _descController.text,
@@ -402,7 +408,11 @@ class _TransactionFormState extends State<_TransactionForm> {
               ),
               child: const Text(
                 'Guardar',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -440,6 +450,26 @@ class _TransactionFormState extends State<_TransactionForm> {
     );
   }
 
+  Widget _buildRadioBtn(String label, String value) {
+    final isSelected = _newExpenseType == value;
+    return InkWell(
+      onTap: () => setState(() => _newExpenseType = value),
+      child: Row(
+        children: [
+          Icon(
+            isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+            color: isSelected ? const Color(0xFF6366F1) : Colors.grey,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(color: isSelected ? Colors.white : Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildIconPicker() {
     return InkWell(
       onTap: () {
@@ -448,12 +478,10 @@ class _TransactionFormState extends State<_TransactionForm> {
           backgroundColor: Colors.transparent,
           isScrollControlled: true,
           builder: (context) => IconCategoryPickerWidget(
-            onSelected: (catId, icon, color) {
-              setState(() {
-                _icon = icon;
-                _color = color;
-              });
-            },
+            onSelected: (_, icon, color) => setState(() {
+              _icon = icon;
+              _color = color;
+            }),
           ),
         );
       },
@@ -468,27 +496,26 @@ class _TransactionFormState extends State<_TransactionForm> {
           children: [
             Icon(_icon, color: _color),
             const SizedBox(width: 10),
-            const Text(
-              'Seleccionar Icono',
-              style: TextStyle(color: Colors.white),
-            ),
+            const Text('Icono', style: TextStyle(color: Colors.white)),
             const Spacer(),
-            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+            const Icon(Icons.chevron_right, color: Colors.grey),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
+  Widget _buildTextField(
+    TextEditingController ctrl,
+    String label,
+    IconData icon, {
     bool isNumber = false,
   }) {
     return TextField(
-      controller: controller,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      controller: ctrl,
+      keyboardType: isNumber
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.text,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
@@ -505,25 +532,19 @@ class _TransactionFormState extends State<_TransactionForm> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// FORMULARIO 2: PRESUPUESTOS (FIJO / VARIABLE)
-// ---------------------------------------------------------------------------
+// FORMULARIO SIMPLE PARA CREAR CATEGORÍAS SIN GASTO
 class _BudgetForm extends StatefulWidget {
-  final String type; // 'fixed' or 'variable'
+  final String type;
   final Function(Map<String, dynamic>) onSave;
-
   const _BudgetForm({required this.type, required this.onSave});
-
   @override
   State<_BudgetForm> createState() => _BudgetFormState();
 }
 
 class _BudgetFormState extends State<_BudgetForm> {
   final _nameController = TextEditingController();
-  final _amountController = TextEditingController();
   final _budgetController = TextEditingController();
-
-  IconData _icon = Icons.home;
+  IconData _icon = Icons.folder;
   Color _color = Colors.orange;
 
   @override
@@ -531,12 +552,15 @@ class _BudgetFormState extends State<_BudgetForm> {
     final colorTema = widget.type == 'fixed'
         ? const Color(0xFFF59E0B)
         : const Color(0xFF3B82F6);
-
     return SingleChildScrollView(
       padding: EdgeInsets.all(5.w),
       child: Column(
         children: [
-          _buildTextField(_nameController, 'Nombre del Gasto', Icons.label),
+          _buildTextField(
+            _nameController,
+            'Nombre Categoría (Ej: Renta)',
+            Icons.label,
+          ),
           SizedBox(height: 2.h),
           _buildIconPicker(),
           SizedBox(height: 2.h),
@@ -546,38 +570,22 @@ class _BudgetFormState extends State<_BudgetForm> {
             Icons.calculate,
             isNumber: true,
           ),
-          SizedBox(height: 2.h),
-          _buildTextField(
-            _amountController,
-            'Gasto Real (Actual)',
-            Icons.attach_money,
-            isNumber: true,
-          ),
-
           SizedBox(height: 4.h),
-
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
               onPressed: () {
                 final budget = double.tryParse(_budgetController.text);
-                final amount = double.tryParse(_amountController.text);
-
-                if (_nameController.text.isEmpty ||
-                    budget == null ||
-                    amount == null) {
-                  Fluttertoast.showToast(msg: "Completa todos los campos");
+                if (_nameController.text.isEmpty || budget == null) {
+                  Fluttertoast.showToast(msg: "Completa los campos");
                   return;
                 }
-
                 widget.onSave({
                   'formType': widget.type,
                   'category': _nameController.text,
                   'budget': budget,
-                  'amount': amount,
-                  'description': 'Pago mensual de ${_nameController.text}',
-                  'date': DateTime.now().toIso8601String(),
+                  'amount': 0.0,
                   'icon': _icon,
                   'color': _color,
                 });
@@ -590,7 +598,11 @@ class _BudgetFormState extends State<_BudgetForm> {
               ),
               child: const Text(
                 'Crear Categoría',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -607,12 +619,10 @@ class _BudgetFormState extends State<_BudgetForm> {
           backgroundColor: Colors.transparent,
           isScrollControlled: true,
           builder: (context) => IconCategoryPickerWidget(
-            onSelected: (catId, icon, color) {
-              setState(() {
-                _icon = icon;
-                _color = color;
-              });
-            },
+            onSelected: (_, icon, color) => setState(() {
+              _icon = icon;
+              _color = color;
+            }),
           ),
         );
       },
@@ -627,12 +637,9 @@ class _BudgetFormState extends State<_BudgetForm> {
           children: [
             Icon(_icon, color: _color),
             const SizedBox(width: 10),
-            const Text(
-              'Seleccionar Icono',
-              style: TextStyle(color: Colors.white),
-            ),
+            const Text('Icono', style: TextStyle(color: Colors.white)),
             const Spacer(),
-            const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+            const Icon(Icons.chevron_right, color: Colors.grey),
           ],
         ),
       ),
@@ -647,7 +654,9 @@ class _BudgetFormState extends State<_BudgetForm> {
   }) {
     return TextField(
       controller: ctrl,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      keyboardType: isNumber
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.text,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
